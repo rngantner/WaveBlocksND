@@ -10,7 +10,7 @@ Pade approximations and an Arnoldi iteration method.
 @license: Modified BSD License
 """
 
-from numpy import zeros, hstack, mat, dot, complexfloating, asarray
+from numpy import zeros, zeros_like, hstack, mat, dot, complexfloating, asarray
 from scipy.linalg import norm, expm
 
 
@@ -24,6 +24,24 @@ def matrix_exp_pade(A, v, factor):
     :return: The (approximate) value of :math:`\exp\left(-i \alpha A\right) v`
     """
     return dot(expm(-1.0j*A*factor), v)
+
+
+def matrix_exp_pade_C(A, v, factor):
+    r"""Compute the solution of :math:`v' = A v` with a full
+    matrix exponential via Pade approximation.
+    Uses an efficient C++ implementation via the Eigen matrix library.
+    If the compiled module is not importable, it falls back to the scipy version.
+
+    :param A: The matrix :math:`A` of shape :math:`N \times N`.
+    :param v: The vector :math:`v` of length :math:`N`.
+    :param factor: An additional scalar factor :math:`\alpha`.
+    :return: The (approximate) value of :math:`\exp\left(-i \alpha A\right) v`
+    """
+    import cpade
+    Anew = -1.0j*A*factor
+    expA = zeros_like(Anew)
+    cpade.expm(Anew,expA)
+    return dot(expA, v)
 
 
 def arnoldi(A, v0, k):
@@ -64,3 +82,22 @@ def matrix_exp_arnoldi(A, v, factor, k):
     eH = mat(expm(-1.0j*factor*H[:-1,:]))
     r = V[:,:-1] * eH[:,0]
     return asarray(r * norm(v))
+
+
+def matrix_exp_arnoldi_C(A, v, factor, k):
+    r"""Compute the solution of :math:`v' = A v` via :math:`k`
+    steps of a the Arnoldi krylov method. Uses a C++ implementation.
+
+    :param A: The matrix :math:`A` of shape :math:`N \times N`.
+    :param v: The vector :math:`v` of length :math:`N`.
+    :param factor: An additional scalar factor :math:`\alpha`.
+    :param k: The number :math:`k` of Krylov steps performed.
+    :return: The (approximate) value of :math:`\exp\left(-i \alpha A\right) v`.
+    """
+    # try to import compiled module
+    from carnoldi import carnoldi
+    V, H = carnoldi(A, v, min(min(A.shape), k))
+    eH = mat(expm(-1.0j*factor*H[:-1,:]))
+    r = V[:,:-1] * eH[:,0]
+    return asarray(r * norm(v))
+

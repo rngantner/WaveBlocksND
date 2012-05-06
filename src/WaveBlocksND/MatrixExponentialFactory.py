@@ -37,5 +37,15 @@ class MatrixExponentialFactory:
             except:
                 arnoldi_steps = parameters["arnoldi_steps"]
             return partial(matrix_exp_arnoldi, k=arnoldi_steps)
+        elif method == "pade_C":
+            from MatrixExponential import matrix_exp_pade_C
+            return matrix_exp_pade_C
+        elif method == "arnoldi_C":
+            from MatrixExponential import matrix_exp_arnoldi_C
+            try:
+                arnoldi_steps = min(parameters["basis_size"], parameters["arnoldi_steps"])
+            except:
+                arnoldi_steps = parameters["arnoldi_steps"]
+            return partial(matrix_exp_arnoldi_C, k=arnoldi_steps)
         else:
             raise ValueError("Unknown matrix exponential algorithm")
