@@ -95,9 +95,12 @@ def matrix_exp_arnoldi_C(A, v, factor, k):
     :return: The (approximate) value of :math:`\exp\left(-i \alpha A\right) v`.
     """
     # try to import compiled module
-    from carnoldi import carnoldi
-    V, H = carnoldi(A, v, min(min(A.shape), k))
+    from carnoldi import arnoldi
+    k = min(min(A.shape), k)
+    V = zeros((A.shape[0],k),dtype=A.dtype)
+    H = zeros((k+1,k),dtype=A.dtype)
+    arnoldi(A, v, k, V, H)
     eH = mat(expm(-1.0j*factor*H[:-1,:]))
-    r = V[:,:-1] * eH[:,0]
+    r = V * eH[:,0]
     return asarray(r * norm(v))
 
