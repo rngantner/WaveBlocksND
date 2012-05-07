@@ -1,0 +1,6 @@
+[submodule "lib/Pade_PyCpp"]
+	path = lib/Pade_PyCpp
+	url = git@github.com:rngantner/Pade_PyCpp.git
+[submodule "lib/Arnoldi_PyCpp"]
+	path = lib/Arnoldi_PyCpp
+	url = git@github.com:rngantner/Arnoldi_PyCpp.git
