@@ -29,7 +29,7 @@ typedef int index_t;
  * Default parameters for harmonic oscillator eigenstates: use T=double
  */
 template<class T>
-class HagedornParameters {
+struct HagedornParameters {
     size_t _dim;
     Matrix<T,Dynamic,1> q,p;
     Matrix<T,Dynamic,Dynamic> Q;
@@ -83,6 +83,87 @@ void evaluate_at(MatrixBase<DerivedVector>& nodes,
     }
     return values;
 }
+
+
+/**
+ * @param grid The grid :math:\Gamma` containing the nodes :math:`\gamma`.
+ * @type grid A class having a :py:method:`get_nodes(...)` method.
+ * @param component The index :math:`i` of a single component :math:`\Phi_i` to evaluate. We need this to choose the correct basis shape.
+ * @param D Number of spatial dimensions
+ * @param prefactor Whether to include a factor of :math:`\frac{1}{\sqrt{\det(Q)}}`.
+ * @type prefactor bool, default is ``False``.
+ * @return A two-dimensional ndarray :math:`H` of shape :math:`(|\mathcal{K}_i|, |\Gamma|)` where the entry :math:`H[\mu(k), i]` is the value of :math:`\phi_k(\gamma_i)`.
+ */
+template<class DerivedMatrix, DerivedVector>
+void evaluate_basis_at(MatrixBase<DerivedVector>& nodes,
+        size_t component,
+        size_t D,
+        HagedornParameters P,
+        bool prefactor=false){
+
+    // fct argument
+    //D = self._dimension
+
+    bas = self._basis_shapes[component]
+    bs = self._basis_sizes[component]
+
+    // The overall number of nodes
+    nn = prod(nodes.shape[1:])
+
+    // Allocate the storage array. RealScalar is either float or double
+    //phi = zeros((bs, nn), dtype=complexfloating)
+    phi = Matrix<complex<DerivedVector::RealScalar>,Dynamic,Dynamic>::Zero(bs,nn);
+
+    // Precompute some constants
+    //q, p, Q, P, S = self._Pis // -> P.q, P.p, P.Q, ...
+
+    Qinv = inv(P.Q)
+    Qbar = conj(P.Q)
+    QQ = dot(Qinv, Qbar)
+
+    // Compute the ground state phi_0 via direct evaluation
+    mu0 = bas[tuple(D*[0])] // map tuple to index
+    phi[mu0,:] = evaluate_phi0(self._Pis, nodes, prefactor=False)
+
+    // Compute all higher order states phi_k via recursion
+    for d in xrange(D):
+        // Iterator for all valid index vectors k
+        indices = bas.get_node_iterator(mode="chain", direction=d)
+
+        for k in indices:
+            // Current index vector
+            ki = vstack(k)
+
+            // Access predecessors
+            phim = zeros((D, nn), dtype=complexfloating)
+
+            for j, kpj in bas.get_neighbours(k, selection="backward"):
+                mukpj = bas[kpj] // map tuple to index
+                phim[j,:] = phi[mukpj,:]
+
+            // Compute 3-term recursion
+            p1 = (nodes - q) * phi[bas[k],:]
+            p2 = sqrt(ki) * phim
+
+            t1 = sqrt(2.0/self._eps**2) * dot(Qinv[d,:], p1)
+            t2 = dot(QQ[d,:], p2)
+
+            // Find multi-index where to store the result
+            kped = bas.get_neighbours(k, selection="forward", direction=d)
+
+            // Did we find this k?
+            if len(kped) > 0:
+                kped = kped[0]
+
+                // Store computed value
+                phi[bas[kped[1]],:] = (t1 - t2) / sqrt(ki[d] + 1.0)
+
+    if prefactor is True:
+        // TODO: Use continuous sqrt function
+        phi = phi / sqrt(det(Q))
+
+    return phi
+
 
 #endif    /* EVAL_BASIS_CPP */
 
