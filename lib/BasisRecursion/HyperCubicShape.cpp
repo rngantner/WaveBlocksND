@@ -14,14 +14,18 @@ public:
     //virtual ~HyperCubicShape ();
     bool contains(tuple o);
     list get_neighbors(tuple k, bool forward); // forward=false is backward
-    IndexIterator get_index_iterator_chain(size_t direction=0);
+    IndexIterator *get_index_iterator_chain(size_t direction=0)const {
+        return new IndexIterator(direction);
+    }
 
 private:
     size_t D;
     dict _lima, _lima_inv;
 };
 
+//
 // Iterator
+//
 class IndexIterator {
     const HyperCubicShape* _hcs;
     size_t index, dim;
