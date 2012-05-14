@@ -45,5 +45,44 @@ class HagedornParameters {
     }
 };
 
+template<class DerivedVector>
+MatrixBase<DerivedVector> evaluate_phi0(const HagedornParameters& constants,
+        const MatrixBase<DerivedVector>& nodes,
+        bool prefactor=false){
+
+}
+
+
+void get_node_iterator(){
+
+}
+
+void get_neighbours(){
+
+}
+
+
+/**
+ * Evaluate basis functions \phi_k recursively at the given nodes \gamma_i \in \Gamma
+ * @param nodes Vector of nodes at which to evaluate basis functions.
+ * @param coefficients Vector of all coefficient vectors. Length =  Ncomponents.
+ * @param values Empty matrix containing space for evaluated functions.
+ */
+template<class DerivedMatrix, class DerivedVector>
+void evaluate_at(MatrixBase<DerivedVector>& nodes,
+        std::vector<MatrixBase<DerivedVector> >& coefficients,
+        MatrixBase<DerivedMatrix>& values,
+        typename DerivedVector::Scalar phase,
+        bool prefactor=false){
+
+    size_t Ncomponents = coefficients.size();
+    for (size_t component=0; i<Ncomponents; component++) {
+        basis = evaluate_basis_at(nodes, component, prefactor);
+        // coeff^T * B. ie. v(i) = sum(coeff(j)*basis(j,i),j)
+        values.row(component) = phase * coefficients[i].adjoint() * basis;
+    }
+    return values;
+}
+
 #endif    /* EVAL_BASIS_CPP */
 
