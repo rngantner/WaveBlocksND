@@ -13,7 +13,7 @@ public:
     HyperCubicShape (size_t dimension, tuple limits, dict lima, dict lima_inv) : D(dimension), _limits(limits), _lima(lima), _lima_inv(lima_inv){}
     //virtual ~HyperCubicShape ();
     bool contains(tuple o);
-    list get_neighbors(tuple k, bool forward); // forward=false is backward
+    list get_neighbours(tuple k, bool forward); // forward=false is backward
     IndexIterator* get_index_iterator_chain(size_t direction=0)const {
         return new IndexIterator(this,_limits,direction);
     }
@@ -75,10 +75,11 @@ Eigen::VectorXi& IndexIterator::operator++(){
 //
 
 class_<HyperCubicShape>("HyperCubicShape")
-        //.def(init<>())
-        //.def(init<X>())
-        .def(init<size_t,dict,dict>())
-        //.def("__repr__", &X::repr)
-        .def("reset", &X::reset)
-        .def("foo", &X::foo)
+        //.def(init<>())  // default constructor
+        //.def(init<X>()) // copy constructor
+        .def(init<size_t,tuple,dict,dict>())
+        .def("contains", &HyperCubicShape::contains)
+        .def("get_neighbours", &HyperCubicShape::get_neighbours)
+//        .def("get_index_iterator_chain", &HyperCubicShape::get_index_iterator_chain)
     ;
+
