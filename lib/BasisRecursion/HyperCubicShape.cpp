@@ -12,8 +12,8 @@ class HyperCubicShape {
 public:
     HyperCubicShape (size_t dimension, tuple limits, dict lima, dict lima_inv) : D(dimension), _limits(limits), _lima(lima), _lima_inv(lima_inv){}
     //virtual ~HyperCubicShape ();
-    bool contains(tuple o);
-    list get_neighbours(tuple k, bool forward); // forward=false is backward
+    bool contains(tuple o){return _lima.has_key(o);}
+    list get_neighbours(tuple k, bool forward=true); // forward=false is backward
     IndexIterator* get_index_iterator_chain(size_t direction=0)const {
         return new IndexIterator(this,_limits,direction);
     }
@@ -23,6 +23,10 @@ private:
     tuple _limits;
     dict _lima, _lima_inv;
 };
+
+bool HyperCubicShape::contains(tuple o){
+    return _lima.has_key(o); // has_key fct of boost::python dict
+}
 
 //
 // Iterator
