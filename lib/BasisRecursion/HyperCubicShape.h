@@ -70,21 +70,6 @@ private:
     dict _lima, _lima_inv;
 };
 
-namespace boost
-{
-    namespace python
-    {
-        template <>
-        struct iterators< HyperCubicShape >
-        {
-            typedef HyperCubicShape::IndexIterator iterator;
-            static iterator begin( Polygon& x) { return x.vertices_begin(); }
-            static iterator end( Polygon& x) { return x.vertices_end(); }
-        };
-    }
-}
-
-
 //class IndexIterator {
 //    const HyperCubicShape* _hcs;
 //    size_t index, dim;
