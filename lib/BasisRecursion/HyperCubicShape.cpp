@@ -65,7 +65,7 @@ IndexIterator::IndexIterator(tuple limits_, size_t dim, bool begin=true){
 /*
  * Increase iterator- compute next tuple
  */
-void IndexIterator::operator++(){
+IndexIterator& IndexIterator::operator++(){
     z[dim] += 1;
     if (z[dim] > limits[dim]-2) {
         z[dim] = 0;
@@ -83,7 +83,18 @@ void IndexIterator::operator++(){
     // i.e.: z = (1,1,1,1,1,0,0,0) for dim=5
     if (z.sum() == (int)dim)
         done = true;
+    return *this;
 }
+
+IndexIterator IndexIterator::operator++(int n){
+    IndexIterator tmp(*this);
+    for (int i=0; i<n; i++){
+        tmp++;
+    }
+    return tmp;
+}
+
+
 
 
 //
@@ -91,13 +102,14 @@ void IndexIterator::operator++(){
 //
 
 BOOST_PYTHON_MODULE(HyperCubicShape) {
-class_<HyperCubicShape>("HyperCubicShape")
-    .def(init<>())  // default constructor
-    .def(init<HyperCubicShape>()) // copy constructor
-    .def(init<size_t,tuple,dict,dict>())
+// need init call here, or bp will assume a default constructor exists!
+class_<HyperCubicShape>("HyperCubicShape",init<size_t,tuple,dict,dict>())
+    //.def(init<>())  // default constructor
+    //.def(init<HyperCubicShape>()) // copy constructor
+    //.def(init<size_t,tuple,dict,dict>()) // see above!
     .def("contains", &HyperCubicShape::contains)
     .def("get_neighbours", &HyperCubicShape::get_neighbours)
     //.def("get_index_iterator_chain", &HyperCubicShape::get_index_iterator_chain)
+    .def("__iter__",iterator<HyperCubicShape>())
     ;
-}
 
