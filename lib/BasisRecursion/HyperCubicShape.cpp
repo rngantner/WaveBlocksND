@@ -29,20 +29,39 @@ IndexIterator* HyperCubicShape::get_index_iterator_chain(size_t direction)const 
 //
 // constructor(s)
 //IndexIterator::IndexIterator() : _hcs(hcs), index(0), dim(dimension), done(false) {}
-IndexIterator::IndexIterator(const HyperCubicShape* hcs, tuple _limits, size_t dimension) :
-    _hcs(hcs), index(0), dim(dimension), done(false)
-{
-    // initialize limits variable
+//IndexIterator::IndexIterator(const HyperCubicShape* hcs, tuple _limits, size_t dimension) :
+//    _hcs(hcs), index(0), dim(dimension), done(false)
+//{
+//    // initialize limits variable
+//    size_t llen = len(_limits);
+//    limits.resize(llen);
+//    for (size_t i=0; i<llen; i++)
+//        limits[i] = extract<int>(_limits[i]); // should throw a python exception if type is not int-convertible
+//
+//    z.setZero(_hcs->getD());
+//}
+
+
+// TODO: return reference or copy??
+
+/*
+ * Constructor
+ */
+IndexIterator::IndexIterator(tuple limits_, size_t dim, bool begin=true){
+    // store limits in an Eigen vector
     size_t llen = len(_limits);
     limits.resize(llen);
     for (size_t i=0; i<llen; i++)
         limits[i] = extract<int>(_limits[i]); // should throw a python exception if type is not int-convertible
 
-    z.setZero(_hcs->getD());
+    // initialize index to correct value (either all zeros for begin or correct value for end)
+    index = VectorXi::Zero(dim);
+    if (!begin) {
+        for (size_t i=0; i<=dim; i++)
+            index[i] = limits[i];
+    }
 }
 
-
-// TODO: return reference or copy??
 /*
  * Increase iterator- compute next tuple
  */
