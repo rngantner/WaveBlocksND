@@ -1,7 +1,7 @@
 """The WaveBlocks Project
 
 This file contains unit tests for the
-TensorProductGrid class.
+MatrixExponential class.
 
 @author: R. Gantner
 @copyright: Copyright (C) 2012
