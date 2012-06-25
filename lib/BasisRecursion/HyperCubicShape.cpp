@@ -1,6 +1,7 @@
 #include <Eigen/Core>
 //#include "boost/python.hpp"
 #include "HyperCubicShape.h"
+#include <string>
 
 #include <boost/python.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -17,7 +18,6 @@ using namespace boost::python;
 
 // remove after debugging:
 #include <iostream>
-#include <string>
 
 //
 // HyperCubicShape
@@ -33,12 +33,15 @@ bool HyperCubicShape::contains(tuple o){
 /**
  * Return list of neighbors of the tuple k.
  */
-list HyperCubicShape::get_neighbours(tuple k, bool forward){
-    list ret;
+list HyperCubicShape::get_neighbours(Eigen::VectorXi k, std::string selection, size_t direction) {
+    tuple k = extract<tuple>(k_obj);
+    std::string selection = extract<std::string>(selection_obj);
+    
+    list neigh;
     ret.append(0);
     ret.append(1);
     ret.append(2);
-    return ret;
+    return neigh;
 }
 
 
@@ -194,7 +197,7 @@ int main(int argc, const char *argv[])
     lima[b] = 1; lima_inv[1] = b;
     lima[c] = 2; lima_inv[2] = c;
     lima[d] = 3; lima_inv[3] = d;
-    } catch (...) {//(const error_already_set&) {
+    } catch (...) {
         PyObject *ptype, *pvalue, *ptraceback;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
         std::string error = extract<std::string>(pvalue);

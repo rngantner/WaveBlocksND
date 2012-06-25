@@ -60,8 +60,10 @@ public:
     typedef IndexIterator< const Eigen::VectorXi > const_iterator; // don't need const iterator?
     iterator begin(){ return iterator(_limits,D,true); } // use typedef here
     iterator end(){ return iterator(_limits,D,false); }
-    bool contains(tuple o);
-    list get_neighbours(tuple k, bool forward=true); // forward=false is backward
+    //bool contains(tuple o);
+    //list get_neighbours(tuple k, bool forward=true); // forward=false is backward
+    bool contains(Eigen::VectorXi o);
+    list get_neighbours(Eigen::VectorXi k, std::string selection, size_t direction);
     iterator* get_index_iterator_chain(size_t direction=0)const;
     size_t getD()const {return D;}
 
