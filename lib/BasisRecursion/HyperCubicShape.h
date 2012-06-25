@@ -12,10 +12,10 @@ struct IndexIterator : std::iterator< std::forward_iterator_tag, ValueType > {
 
     ValueType& operator*() { return index; }
 
-    template< class VT2, class NT2 >
-    friend bool operator==( IndexIterator const &lhs, IndexIterator< VT2 > const &rhs ){ return lhs.index == rhs.index; }
-    template< class VT2, class NT2 >
-    friend bool operator!=( IndexIterator const &lhs, IndexIterator< VT2 > const &rhs ){ return lhs.index != rhs.index; }
+    template< class VT >
+    friend bool operator==( IndexIterator<VT> const &lhs, IndexIterator<VT> const &rhs );
+    template< class VT >
+    friend bool operator!=( IndexIterator<VT> const &lhs, IndexIterator<VT> const &rhs );
     IndexIterator& operator++();
     IndexIterator operator++(int);
 

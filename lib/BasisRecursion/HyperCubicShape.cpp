@@ -117,13 +117,19 @@ IndexIterator<ValueType> IndexIterator<ValueType>::operator++(int n){
  * Equality operator
  */
 template< class ValueType >
-operator==( IndexIterator<ValueType> const &lhs, IndexIterator<ValueType> const &rhs){
+bool operator==( IndexIterator<ValueType> const &lhs, IndexIterator<ValueType> const &rhs){
     return lhs.index == rhs.index; // if integer vectors, this should work.
     // for floating-point, the following is needed:
     //return lhs.index.isApprox(rhs.index); // true if all values are approximately the same
 }
 
-
+/**
+ * not equal operator. Uses implementation of equality operator
+ */
+template< class ValueType >
+bool operator!=( IndexIterator<ValueType> const &lhs, IndexIterator<ValueType> const &rhs){
+    return !(lhs == rhs);
+}
 
 //
 // boost::python stuff
