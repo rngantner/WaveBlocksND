@@ -7,25 +7,26 @@ class HyperCubicShape;
 //
 // Iterator
 //
-template< class ValueType, class NodeType=Eigen::VectorXi >
+template< class ValueType=Eigen::VectorXi >
 struct IndexIterator : std::iterator< std::forward_iterator_tag, ValueType > {
 
     ValueType& operator*() { return index; }
 
     template< class VT2, class NT2 >
-    friend bool operator==( IndexIterator const &lhs, IndexIterator< VT2, NT2 > const &rhs ){ return lhs.index == rhs.index; }
-    friend bool operator!=( IndexIterator const &lhs, IndexIterator< VT2, NT2 > const &rhs ){ return lhs.index != rhs.index; }
-    NodeType operator*(){ return index; }
+    friend bool operator==( IndexIterator const &lhs, IndexIterator< VT2 > const &rhs ){ return lhs.index == rhs.index; }
+    template< class VT2, class NT2 >
+    friend bool operator!=( IndexIterator const &lhs, IndexIterator< VT2 > const &rhs ){ return lhs.index != rhs.index; }
     IndexIterator& operator++();
     IndexIterator operator++(int);
 
 private:
-    NodeType index;
+    ValueType index;
     bool done;
-    NodeType limits;
+    size_t dim;
+    Eigen::VectorXi limits;
 
     friend class HyperCubicShape;
-    IndexIterator(size_t dim, bool begin ); // private constructor for begin, end
+    IndexIterator(tuple limits_, size_t dim_, bool begin ); // private constructor for begin, end
 };
 
 
@@ -55,13 +56,13 @@ public:
 
     //typedef IndexIterator< T, my_node< T > > iterator;
     //typedef IndexIterator< T const, my_node< T > const > const_iterator;
-    typedef IndexIterator< T, Eigen::VectorXi > iterator;
-    typedef IndexIterator< T const, Eigen::VectorXi const > const_iterator;
-    IndexIterator begin(){ return IndexIterator(_limits,D,true); }
-    IndexIterator end(){ return IndexIterator(_limits,D,false); }
+    typedef IndexIterator< Eigen::VectorXi > iterator;
+    typedef IndexIterator< const Eigen::VectorXi > const_iterator; // don't need const iterator?
+    iterator begin(){ return iterator(_limits,D,true); } // use typedef here
+    iterator end(){ return iterator(_limits,D,false); }
     bool contains(tuple o);
     list get_neighbours(tuple k, bool forward=true); // forward=false is backward
-    IndexIterator* get_index_iterator_chain(size_t direction=0)const;
+    iterator* get_index_iterator_chain(size_t direction=0)const;
     size_t getD()const {return D;}
 
 private:
