@@ -35,8 +35,8 @@ python:
 	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) ${modulename}.cpp
 	$(CC) $(CFLAGS) -shared -o ${modulename}.so ${modulename}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
-#prog:
-#	$(CC) $(CFLAGS) -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) ${modulename}.cpp -o ${modulename}
+prog:
+	$(CC) $(CFLAGS) -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) -L$(PYLIBS) $(BOOSTPYLIBS)/libboost_python.so -lpython$(PYTHONVERSION) ${modulename}.cpp -o ${modulename}
 
 clean:
 	$(RM) ${modulename} ${modulename}.so *.o
