@@ -1,3 +1,6 @@
+#ifndef CONVENIENCE_FCTS
+#define CONVENIENCE_FCTS
+
 #include <Eigen/Core>
 #include <boost/python.hpp> 
 #include <Python.h>
@@ -49,3 +52,5 @@ struct Eigen_to_python {
     }
 };
 */
+
+#endif //CONVENIENCE_FCTS

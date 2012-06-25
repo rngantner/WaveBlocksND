@@ -6,12 +6,11 @@
 #include <vector>
 
 #include <boost/python.hpp>
-using namespace boost::python;
 
 /*
 #ifdef PYTHONMODULE
     #include <boost/python.hpp>
-    using namespace boost::python;
+    //using namespace boost::python;
     //#include <Python.h>
     //#include <numpy/arrayobject.h>
 #endif
@@ -29,7 +28,7 @@ using namespace boost::python;
  * TODO: optimize this! (is in inner loop! don't use python dict lookup)
  */
 bool HyperCubicShape::contains(Eigen::VectorXi o){
-    tuple op = toTuple(o);
+    boost::python::tuple op = toTuple(o);
     return _lima.has_key(op);
 }
 
@@ -91,10 +90,10 @@ HyperCubicShape::iterator* HyperCubicShape::get_index_iterator_chain(size_t dire
 #ifdef PYTHONMODULE
 BOOST_PYTHON_MODULE(HyperCubicShape) {
 // need init call here, or bp will assume a default constructor exists!
-class_<HyperCubicShape>("HyperCubicShape",init<size_t,tuple,dict,dict>())
+class_<HyperCubicShape>("HyperCubicShape",init<size_t,boost::python::tuple,boost::python::dict,boost::python::dict>())
     //.def(init<>())  // default constructor
     //.def(init<HyperCubicShape>()) // copy constructor
-    //.def(init<size_t,tuple,dict,dict>()) // see above!
+    //.def(init<size_t,tuple,boost::python::dict,boost::python::dict>()) // see above!
     .def("contains", &HyperCubicShape::contains)
     .def("get_neighbours", &HyperCubicShape::get_neighbours)
     //.def("get_index_iterator_chain", &HyperCubicShape::get_index_iterator_chain)
@@ -108,36 +107,46 @@ int main(int argc, const char *argv[])
     Py_Initialize();
     std::cout << "creating tuple" << std::endl;
     // create variables
-    tuple limtuple = make_tuple(2,2); // 0,1 in each dim
+    boost::python::tuple limtuple = boost::python::make_tuple(2,3); // 0,1 in each dim
     std::cout << "tuple created" << std::endl;
     //std::cout << limtuple[0] << std::endl;
-    list indices;
+    boost::python::list indices;
     //Eigen::VectorXi a,b,c,d;
-    tuple a,b,c,d;
+    boost::python::tuple a,b,c,d,e,f;
     std::cout << "creating indices" << std::endl;
     //a << 0,0; indices.append(a);
-    a = make_tuple(0,0); indices.append(a);
-    b = make_tuple(1,0); indices.append(b);
-    c = make_tuple(0,1); indices.append(c);
-    d = make_tuple(1,1); indices.append(d);
+    a = boost::python::make_tuple(0,0); indices.append(a);
+    b = boost::python::make_tuple(1,0); indices.append(b);
+    c = boost::python::make_tuple(0,1); indices.append(c);
+    d = boost::python::make_tuple(1,1); indices.append(d);
+    e = boost::python::make_tuple(0,2); indices.append(e);
+    f = boost::python::make_tuple(1,2); indices.append(f);
     std::cout << "created indices" << std::endl;
     // example dicts
     std::cout << "creating lima, lima_inv dicts" << std::endl;
-    dict lima,lima_inv;
+    boost::python::dict lima,lima_inv;
     try {
     lima[a] = 0; lima_inv[0] = a;
     lima[b] = 1; lima_inv[1] = b;
     lima[c] = 2; lima_inv[2] = c;
     lima[d] = 3; lima_inv[3] = d;
+    lima[e] = 3; lima_inv[3] = e;
+    lima[f] = 3; lima_inv[3] = f;
     } catch (...) {
         PyObject *ptype, *pvalue, *ptraceback;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-        std::string error = extract<std::string>(pvalue);
+        std::string error = boost::python::extract<std::string>(pvalue);
         std::cout << "ERROR: " << error << std::endl;
     }
     std::cout << "created lima, lima_inv dicts" << std::endl;
     std::cout << "instantiating HCS" << std::endl;
     HyperCubicShape hc(2,limtuple,lima,lima_inv);
+    std::cout << "getting neighbours of 1,1" << std::endl;
+    Eigen::VectorXi vec(2);
+    vec << 1,1;
+    std::vector<Eigen::VectorXi> n = hc.get_neighbours(vec,"all");
+    for (size_t i=0; i < n.size(); i++)
+        std::cout << i << " " << n[i].transpose() << std::endl;
     std::cout << "getting HCS iterator" << std::endl;
     HyperCubicShape::iterator* it = hc.get_index_iterator_chain();
     std::cout << it->index << std::endl;

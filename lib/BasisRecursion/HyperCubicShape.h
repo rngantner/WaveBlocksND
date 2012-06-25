@@ -1,7 +1,10 @@
+#ifndef HYPERCUBICSHAPE_H
+#define HYPERCUBICSHAPE_H
+
 #include <boost/python.hpp>
 #include <Eigen/Core>
 #include <vector>
-using namespace boost::python;
+#include "IndexIterator.h"
 
 /**
  * Provides a few access functions given the data of a Python instance of HyperCubicShape.
@@ -9,14 +12,18 @@ using namespace boost::python;
  */
 class HyperCubicShape {
 public:
-    HyperCubicShape (size_t dimension, tuple limits, dict lima, dict lima_inv) :
+    HyperCubicShape (size_t dimension, boost::python::tuple limits, boost::python::dict lima, boost::python::dict lima_inv) :
         D(dimension), _limits(limits), _lima(lima), _lima_inv(lima_inv){}
     //virtual ~HyperCubicShape ();
 
-    typedef IndexIterator< Eigen::VectorXi > iterator;
-    typedef IndexIterator< const Eigen::VectorXi > const_iterator; // don't need const iterator?
-    iterator begin(){ return iterator(_limits,D,true); } // use typedef here
-    iterator end(){ return iterator(_limits,D,false); }
+    typedef IndexIterator<Eigen::VectorXi> iterator;
+    typedef IndexIterator<const Eigen::VectorXi> const_iterator; // don't need const iterator?
+    iterator begin(){ return iterator(_limits,D); } // use typedef here
+    iterator end(){
+        iterator ret = iterator(_limits,D);
+        ret.toEnd();
+        return ret;
+    }
     //bool contains_py(tuple o); // implement these if python module should be provided (??)
     //list get_neighbours_py(tuple k, bool forward=true); // forward=false is backward
     bool contains(Eigen::VectorXi o);
@@ -26,7 +33,9 @@ public:
 
 private:
     size_t D;
-    tuple _limits;
-    dict _lima, _lima_inv;
+    boost::python::tuple _limits;
+    boost::python::dict _lima, _lima_inv;
 };
+
+#endif //HYPERCUBICSHAPE_H
 
