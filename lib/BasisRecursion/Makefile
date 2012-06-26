@@ -32,7 +32,7 @@ modulename=HyperCubicShape
 all: python prog
  
 python: ${modulename}.cpp
-	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) IndexIterator.cpp ${modulename}.cpp
+	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) ${modulename}.cpp
 	$(CC) $(CFLAGS) -shared -o ${modulename}.so ${modulename}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
 prog: ${modulename}.cpp

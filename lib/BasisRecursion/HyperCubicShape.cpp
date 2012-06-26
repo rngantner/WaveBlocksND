@@ -31,8 +31,8 @@ BOOST_PYTHON_MODULE(HyperCubicShape) {
 class_<HyperCubicShape>("HyperCubicShape",init<size_t,boost::python::tuple,boost::python::dict,boost::python::dict>())
     //.def(init<>())  // default constructor
     //.def(init<HyperCubicShape>()) // copy constructor
-    //.def(init<size_t,tuple,boost::python::dict,boost::python::dict>()) // see above!
-    .def("contains", &HyperCubicShape::contains)
+    .def(init<size_t,tuple,boost::python::dict,boost::python::dict>()) // see above!
+    .def("contains", &HyperCubicShape::contains_py)
     .def("get_neighbours", &HyperCubicShape::get_neighbours)
     //.def("get_index_iterator_chain", &HyperCubicShape::get_index_iterator_chain)
     .def("__iter__",iterator<HyperCubicShape>())

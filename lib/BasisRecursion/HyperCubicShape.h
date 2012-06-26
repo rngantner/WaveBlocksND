@@ -16,18 +16,21 @@ public:
         D(dimension), _limits(limits), _lima(lima), _lima_inv(lima_inv){}
     //virtual ~HyperCubicShape ();
 
-    typedef IndexIterator<Eigen::VectorXi> iterator;
-    typedef IndexIterator<const Eigen::VectorXi> const_iterator; // don't need const iterator?
-    /** iterator pointing to first indices */
+    typedef PyIndexIterator iterator;
+    typedef PyIndexIterator const_iterator; // don't need const iterator?
+    //typedef PyIndexIterator<Eigen::VectorXi> pyiterator; // returns Python objects (tuple, list,..)
+    /** iterator pointing to first indices. Used by boost::python::iterator converter */
     iterator begin(){
-        return iterator(_limits,D);
+        return iterator(_limits,D,D-1);
     }
-    /** iterator pointing to one past the last index (iterator::end_sentinel) */
+    /** 
+     * \return iterator pointing to one past the last index (iterator::end_sentinel).
+     * Used by boost::python::iterator converter
+     */
     iterator end(){
-        return iterator::end();
-        //iterator ret = iterator(_limits,D);
-        //ret.toEnd();
-        //return ret;
+        // for python version, end is the last valid iterator, not the sentinel
+        iterator tmp(_limits,D,0);
+        return tmp.end();
     }
     //list get_neighbours_py(tuple k, bool forward=true); // forward=false is backward
     /**
@@ -38,7 +41,7 @@ public:
         boost::python::tuple op = toTuple(o);
         return _lima.has_key(op);
     }
-    bool contains_py(tuple o){
+    bool contains_py(boost::python::tuple o){
         return _lima.has_key(o);
     }
 
@@ -88,11 +91,9 @@ public:
      * \return new chain iterator (IndexIterator instance)
      */
     iterator get_index_iterator_chain(size_t direction=0)const {
-        std::string lims = boost::python::extract<std::string>(boost::python::str(_limits));
-        std::cout << "get_ind_it: limits: " << lims << std::endl;
-        HyperCubicShape::iterator tmp(_limits,D,direction);
-        std::cout << "get_ind_it: tmp.size: " << (*tmp).size() << std::endl;
-        return tmp;
+        //HyperCubicShape::iterator tmp(_limits,D,direction);
+        //return tmp;
+        return HyperCubicShape::iterator(_limits,D,direction);
     }
 
     /** \return dimension D */
