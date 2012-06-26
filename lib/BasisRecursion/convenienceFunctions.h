@@ -28,6 +28,18 @@ boost::python::list toList(Eigen::MatrixBase<Derived>& arg){
 }
 
 /**
+ * \return Eigen::VectorXi from a tuple/list of ints
+ */
+Eigen::VectorXi toVectorXi(PyObject* arg){
+    size_t l = boost::python::len(arg);
+    Eigen::VectorXi ret(l);
+    for (int i=0; i<l; i++){
+        ret[i] = boost::python::extract<int>(arg[i]);
+    }
+    return ret;
+}
+
+/**
  * returns an Eigen::Matrix given a boost::python::tuple, boost::python::list, or numpy.ndarray
  */
 /*template<class Derived>
