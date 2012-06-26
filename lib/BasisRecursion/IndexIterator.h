@@ -120,9 +120,7 @@ private:
         init(limits_,!issentinel);
     }
 
-    /**
-     * init function containing common constructor code
-     */
+    /** init function containing common constructor code */
     void init(Eigen::VectorXi& limits_,bool addsentinel) {
         limits.resize(limits_.size());
         limits << limits_;
@@ -158,6 +156,45 @@ bool operator!=( IndexIterator<ValueType> const &lhs, IndexIterator<ValueType> c
     return !(lhs == rhs);
 }
 
+
+/**
+ *
+ * Version of IndexIterator that yields Python objects
+ *
+ */
+
+template< class ValueType >
+struct PyIndexIterator : IndexIterator<ValueType> {
+    // call superclass constructor
+    PyIndexIterator(boost::python::tuple limits_, size_t dim_, size_t direction_=0, bool issentinel=false):
+       IndexIterator<ValueType>(limits_,dim_,direction_,issentinel) {}
+    /**
+     * operator* yields Python tuple
+     */
+    boost::python::tuple operator*() {
+        return toTuple(this->index);
+    }
+    /**
+     * \return Sentinel value ("one-past-end")
+     */
+    static PyIndexIterator<ValueType> end(){
+        return *sentinel;
+    }
+private:
+    friend class HyperCubicShape;
+    /** sentinel pointer */
+    static boost::shared_ptr<PyIndexIterator<ValueType> > sentinel;
+    /** set sentinel */
+    static void setSentinel(Eigen::VectorXi& limits, size_t dim, size_t dir) {
+        if (!sentinel){
+            PyIndexIterator<ValueType>* tmp = new PyIndexIterator<ValueType>(limits,dim,dir,true);
+            tmp->index[0] = -1;
+            tmp->done = true;
+            sentinel.reset(tmp);
+        }
+    }
+};
+template<class ValueType> boost::shared_ptr<PyIndexIterator<ValueType> > PyIndexIterator<ValueType>::sentinel = boost::shared_ptr<PyIndexIterator<ValueType> >();
 
 
 #endif //INDEX_ITERATOR_H
