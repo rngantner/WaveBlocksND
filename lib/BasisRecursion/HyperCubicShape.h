@@ -29,7 +29,6 @@ public:
         //ret.toEnd();
         //return ret;
     }
-    //bool contains_py(tuple o); // implement these if python module should be provided (??)
     //list get_neighbours_py(tuple k, bool forward=true); // forward=false is backward
     /**
      * Test if a tuple is contained in the HyperCubicShape.
@@ -38,6 +37,9 @@ public:
     bool contains(Eigen::VectorXi o){
         boost::python::tuple op = toTuple(o);
         return _lima.has_key(op);
+    }
+    bool contains_py(tuple o){
+        return _lima.has_key(o);
     }
 
     /**
