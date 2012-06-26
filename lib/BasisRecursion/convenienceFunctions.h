@@ -13,7 +13,18 @@ boost::python::tuple toTuple(Eigen::MatrixBase<Derived>& arg){
     boost::python::list l;
     for (int i=0; i<arg.size(); i++)
         l.append(arg[i]);
-    return make_tuple(l);
+    return boost::python::tuple(l);
+}
+
+/**
+ * \return boost::python::list containing info from eigen vector
+ */
+template<class Derived>
+boost::python::list toList(Eigen::MatrixBase<Derived>& arg){
+    boost::python::list l;
+    for (int i=0; i<arg.size(); i++)
+        l.append(arg[i]);
+    return l;
 }
 
 /**
