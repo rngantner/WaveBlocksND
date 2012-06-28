@@ -2,22 +2,7 @@
 //#include "boost/python.hpp"
 #include "HyperCubicShape.h"
 #include "convenienceFunctions.h"
-#include <string>
-#include <vector>
-
 #include <boost/python.hpp>
-
-/*
-#ifdef PYTHONMODULE
-    #include <boost/python.hpp>
-    //using namespace boost::python;
-    //#include <Python.h>
-    //#include <numpy/arrayobject.h>
-#endif
-*/
-
-// remove after debugging:
-#include <iostream>
 
 
 //
@@ -40,6 +25,9 @@ class_<HyperCubicShape<PyIndexIterator> >("HyperCubicShape",init<size_t,boost::p
 }
 
 #else // no python module (PYTHONMODULE not defined)
+#include <iostream>
+#include <vector>
+#include <string>
 int main(int argc, const char *argv[])
 {
     Py_Initialize();
@@ -88,16 +76,12 @@ int main(int argc, const char *argv[])
     for (size_t i=0; i < n.size(); i++)
         std::cout << "i: " << i << " n.T= " << n[i].transpose() << std::endl;
     std::cout << "getting HCS iterator" << std::endl;
+    //HyperCubicShape<EigIndexIterator>::iterator it; // doesn't work- no default constructor (TODO?)
     HyperCubicShape<EigIndexIterator>::iterator it = hc.get_index_iterator_chain(1);
     std::cout << "got HCS iterator" << std::endl;
-    int m=0;
-    while (it != hc.end() && m<10) {
+    for (it = hc.begin(); it != hc.end(); it++)
         std::cout << "index: " << (*it).transpose() << std::endl;
-        it++;
-        //it.operator++();
-        //(*it)++;
-        m++;
-    }
+
     return 0;
 }
 
