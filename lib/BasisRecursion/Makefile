@@ -36,7 +36,7 @@ python: ${modulename}.cpp
 	$(CC) $(CFLAGS) -shared -o ${modulename}.so ${modulename}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
 prog: ${modulename}.cpp
-	$(CC) -c $(CFLAGS) -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) ${modulename}.cpp 
+	$(CC) -c $(CFLAGS) -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) ${modulename}.cpp
 	$(CC) -L$(PYLIBS) $(BOOSTPYLIBS)/libboost_python.so -lpython$(PYTHONVERSION) ${modulename}.o -o ${modulename}
 
 clean:

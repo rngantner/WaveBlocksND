@@ -28,14 +28,14 @@
 using namespace boost::python;
 BOOST_PYTHON_MODULE(HyperCubicShape) {
 // need init call here, or bp will assume a default constructor exists!
-class_<HyperCubicShape>("HyperCubicShape",init<size_t,boost::python::tuple,boost::python::dict,boost::python::dict>())
+class_<HyperCubicShape<PyIndexIterator> >("HyperCubicShape",init<size_t,boost::python::tuple,boost::python::dict,boost::python::dict>())
     //.def(init<>())  // default constructor
     //.def(init<HyperCubicShape>()) // copy constructor
     .def(init<size_t,tuple,boost::python::dict,boost::python::dict>()) // see above!
-    .def("contains", &HyperCubicShape::contains_py)
-    .def("get_neighbours", &HyperCubicShape::get_neighbours)
+    .def("contains", &HyperCubicShape<PyIndexIterator>::contains_py)
+    .def("get_neighbours", &HyperCubicShape<PyIndexIterator>::get_neighbours)
     //.def("get_index_iterator_chain", &HyperCubicShape::get_index_iterator_chain)
-    .def("__iter__",iterator<HyperCubicShape>())
+    .def("__iter__",iterator<HyperCubicShape<PyIndexIterator> >())
     ;
 }
 
@@ -71,7 +71,7 @@ int main(int argc, const char *argv[])
     lima[f] = 3; lima_inv[3] = f;
     std::cout << "created lima, lima_inv dicts" << std::endl;
     std::cout << "instantiating HCS" << std::endl;
-    HyperCubicShape hc(2,limtuple,lima,lima_inv);
+    HyperCubicShape<EigIndexIterator> hc(2,limtuple,lima,lima_inv);
     std::cout << "getting neighbours of 1,1" << std::endl;
     Eigen::VectorXi vec(2);
     vec << 1,1;
@@ -88,7 +88,7 @@ int main(int argc, const char *argv[])
     for (size_t i=0; i < n.size(); i++)
         std::cout << "i: " << i << " n.T= " << n[i].transpose() << std::endl;
     std::cout << "getting HCS iterator" << std::endl;
-    HyperCubicShape::iterator it = hc.get_index_iterator_chain(1);
+    HyperCubicShape<EigIndexIterator>::iterator it = hc.get_index_iterator_chain(1);
     std::cout << "got HCS iterator" << std::endl;
     int m=0;
     while (it != hc.end() && m<10) {

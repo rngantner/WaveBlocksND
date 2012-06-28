@@ -10,15 +10,16 @@
  * Provides a few access functions given the data of a Python instance of HyperCubicShape.
  * Would be slow if C++ needed to construct an own Python object and call its functions.
  */
+template <typename IteratorType = PyIndexIterator>
 class HyperCubicShape {
 public:
     HyperCubicShape (size_t dimension, boost::python::tuple limits, boost::python::dict lima, boost::python::dict lima_inv) :
         D(dimension), _limits(limits), _lima(lima), _lima_inv(lima_inv){}
     //virtual ~HyperCubicShape ();
 
-    typedef PyIndexIterator iterator;
-    typedef PyIndexIterator const_iterator; // don't need const iterator?
-    //typedef PyIndexIterator<Eigen::VectorXi> pyiterator; // returns Python objects (tuple, list,..)
+    typedef IteratorType iterator;
+    typedef IteratorType const_iterator; // don't need const iterator?
+    //typedef IteratorType<Eigen::VectorXi> pyiterator; // returns Python objects (tuple, list,..)
     /** iterator pointing to first indices. Used by boost::python::iterator converter */
     iterator begin(){
         return iterator(_limits,D,D-1);

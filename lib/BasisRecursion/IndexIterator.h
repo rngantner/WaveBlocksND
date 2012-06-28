@@ -13,6 +13,7 @@
 //using namespace boost::python;
 
 // empty class to avoid recursive dependency problem
+template <typename IteratorType>
 class HyperCubicShape;
 class PyIndexIterator;
 
@@ -92,6 +93,7 @@ private:
 
     friend class PyIndexIterator;
     friend class EigIndexIterator;
+    template <typename IteratorType>
     friend class HyperCubicShape;
     /**
      * Constructor accepting a tuple of limits. calls other constructor
