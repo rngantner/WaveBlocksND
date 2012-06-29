@@ -43,6 +43,11 @@ struct HagedornParameters {
         P.setIdentity(dim,dim);
         S = 0.0;
     }
+    // constructor accepting a tuple Pis as stored in python
+    // converts to C++ types
+    HagedornParameters(boost::python::tuple Pis) {
+        // TODO
+    }
 };
 
 template<class DerivedVector>
@@ -64,15 +69,16 @@ void get_neighbours(){
 
 /**
  * Evaluate basis functions \phi_k recursively at the given nodes \gamma_i \in \Gamma
- * @param nodes Vector of nodes at which to evaluate basis functions.
- * @param coefficients Vector of all coefficient vectors. Length =  Ncomponents.
- * @param values Empty matrix containing space for evaluated functions.
+ * \param nodes Vector of nodes at which to evaluate basis functions.
+ * \param coefficients Vector of all coefficient vectors. Length =  Ncomponents.
+ * \param values Empty matrix containing space for evaluated functions.
+ * \param phase Scalar (complex) phase
  */
 template<class DerivedMatrix, class DerivedVector>
-void evaluate_at(MatrixBase<DerivedVector>& nodes,
+void evaluate_at(MatrixBase<DerivedVector>&      nodes,
         std::vector<MatrixBase<DerivedVector> >& coefficients,
-        MatrixBase<DerivedMatrix>& values,
-        typename DerivedVector::Scalar phase,
+        MatrixBase<DerivedMatrix>&               values,
+        typename DerivedVector::Scalar           phase,
         bool prefactor=false){
 
     size_t Ncomponents = coefficients.size();
@@ -86,26 +92,26 @@ void evaluate_at(MatrixBase<DerivedVector>& nodes,
 
 
 /**
- * @param grid The grid :math:\Gamma` containing the nodes :math:`\gamma`.
- * @type grid A class having a :py:method:`get_nodes(...)` method.
- * @param component The index :math:`i` of a single component :math:`\Phi_i` to evaluate. We need this to choose the correct basis shape.
- * @param D Number of spatial dimensions
- * @param prefactor Whether to include a factor of :math:`\frac{1}{\sqrt{\det(Q)}}`.
- * @type prefactor bool, default is ``False``.
- * @return A two-dimensional ndarray :math:`H` of shape :math:`(|\mathcal{K}_i|, |\Gamma|)` where the entry :math:`H[\mu(k), i]` is the value of :math:`\phi_k(\gamma_i)`.
+ * \param grid The grid :math:\Gamma` containing the nodes :math:`\gamma`.
+ * \type grid A class having a :py:method:`get_nodes(...)` method.
+ * \param component The index :math:`i` of a single component :math:`\Phi_i` to evaluate. We need this to choose the correct basis shape.
+ * \param D Number of spatial dimensions
+ * \param prefactor Whether to include a factor of :math:`\frac{1}{\sqrt{\det(Q)}}`.
+ * \type prefactor bool, default is ``False``.
+ * \return A two-dimensional ndarray :math:`H` of shape :math:`(|\mathcal{K}_i|, |\Gamma|)` where the entry :math:`H[\mu(k), i]` is the value of :math:`\phi_k(\gamma_i)`.
  */
 template<class DerivedMatrix, DerivedVector>
-void evaluate_basis_at(MatrixBase<DerivedVector>& nodes,
-        size_t component,
-        size_t D,
-        HagedornParameters P,
-        bool prefactor=false){
-
-    // fct argument
-    //D = self._dimension
-
-    bas = self._basis_shapes[component]
-    bs = self._basis_sizes[component]
+void evaluate_basis_at(
+        MatrixBase<DerivedVector>& nodes,
+        HagedornParameters         P,
+        size_t                     D,
+        boost::python::tuple       limits,
+        boost::python::dict        lima,
+        boost::python::dict        lima_inv,
+        bool                       prefactor=false)
+{
+    // create instance of HyperCubicShape:
+    bas = HyperCubicShape(D,limits,lima,lima_inv);
 
     // The overall number of nodes
     nn = prod(nodes.shape[1:])
@@ -126,9 +132,9 @@ void evaluate_basis_at(MatrixBase<DerivedVector>& nodes,
     phi[mu0,:] = evaluate_phi0(self._Pis, nodes, prefactor=False)
 
     // Compute all higher order states phi_k via recursion
-    for d in xrange(D):
+    for (int d=0; d<D; d++){
         // Iterator for all valid index vectors k
-        indices = bas.get_node_iterator(mode="chain", direction=d)
+        indices = bas.get_node_iterator(d);
 
         for k in indices:
             // Current index vector
