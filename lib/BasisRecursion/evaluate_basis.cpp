@@ -50,12 +50,27 @@ struct HagedornParameters {
     }
 };
 
+void evaluate_basis_at_helper(){
+    // D = dimension
+    for (int d=0; d<D; d++){
+        indices = get_node_iterator(d);
+    }
+}
+
+/**
+ * \param constants parameter set pi
+ * \param nodes Matrix of size D x number of nodes
+ * \param prefactor whether to include prefactor 1./sqrt(det(Q))
+ * \return vector phi_0 of length n (number of evaluation nodes)
+ */
+/* // use the python version of this function
 template<class DerivedVector>
 MatrixBase<DerivedVector> evaluate_phi0(const HagedornParameters& constants,
         const MatrixBase<DerivedVector>& nodes,
         bool prefactor=false){
 
 }
+*/
 
 
 void get_node_iterator(){
@@ -90,7 +105,7 @@ void evaluate_at(MatrixBase<DerivedVector>&      nodes,
     return values;
 }
 
-
+typedef HyperCubicShape<EigIndexIterator> ShapeType;
 /**
  * \param grid The grid :math:\Gamma` containing the nodes :math:`\gamma`.
  * \type grid A class having a :py:method:`get_nodes(...)` method.
@@ -100,8 +115,9 @@ void evaluate_at(MatrixBase<DerivedVector>&      nodes,
  * \type prefactor bool, default is ``False``.
  * \return A two-dimensional ndarray :math:`H` of shape :math:`(|\mathcal{K}_i|, |\Gamma|)` where the entry :math:`H[\mu(k), i]` is the value of :math:`\phi_k(\gamma_i)`.
  */
-template<class DerivedMatrix, DerivedVector>
-void evaluate_basis_at(
+template<class DerivedVector>
+Matrix<complex<DerivedVector::RealScalar>,Dynamic,Dynamic> // return type
+evaluate_basis_at(
         MatrixBase<DerivedVector>& nodes,
         HagedornParameters         P,
         size_t                     D,
@@ -111,14 +127,16 @@ void evaluate_basis_at(
         bool                       prefactor=false)
 {
     // create instance of HyperCubicShape:
-    bas = HyperCubicShape(D,limits,lima,lima_inv);
+    bas = ShapeType(D,limits,lima,lima_inv);
 
     // The overall number of nodes
-    nn = prod(nodes.shape[1:])
+    size_t nn = nodes.rows()*nodes.cols();
+    //nn = prod(nodes.shape[1:])
 
     // Allocate the storage array. RealScalar is either float or double
     //phi = zeros((bs, nn), dtype=complexfloating)
-    phi = Matrix<complex<DerivedVector::RealScalar>,Dynamic,Dynamic>::Zero(bs,nn);
+    Matrix<complex<DerivedVector::RealScalar>,Dynamic,Dynamic> phi,phim;
+    phi.setZero(bs,nn);
 
     // Precompute some constants
     //q, p, Q, P, S = self._Pis // -> P.q, P.p, P.Q, ...
@@ -134,42 +152,53 @@ void evaluate_basis_at(
     // Compute all higher order states phi_k via recursion
     for (int d=0; d<D; d++){
         // Iterator for all valid index vectors k
-        indices = bas.get_node_iterator(d);
+        ShapeType::iterator it = bas.begin(d); //TODO: pass argument d somehow (change HyperCubicShape)
 
-        for k in indices:
+        for (it=bas.begin(); it != bas.end(); it++) {
+        //for k in indices:
             // Current index vector
-            ki = vstack(k)
+            //ki = vstack(k)
 
             // Access predecessors
-            phim = zeros((D, nn), dtype=complexfloating)
+            phim.setZero(D,nn);
+            //phim = zeros((D, nn), dtype=complexfloating)
 
-            for j, kpj in bas.get_neighbours(k, selection="backward"):
+            std::vector<Eigen::VectorXi> neighbours = bas.get_neighbours(*it, "backward");
+            std::vector<Eigen::VectorXi>::iterator neigh_it = neighbours.begin();
+            for (size_t j=0; neigh_it != neighbours.end(); neigh_it++,j++){
+            //for j, kpj in 
                 mukpj = bas[kpj] // map tuple to index
-                phim[j,:] = phi[mukpj,:]
-
+                phim.row(j) = phi.row(mukpj);
+                //phim[j,:] = phi[mukpj,:]
+            }
             // Compute 3-term recursion
-            p1 = (nodes - q) * phi[bas[k],:]
-            p2 = sqrt(ki) * phim
+            p1 = (nodes - q) * phi.row(bas[*it]); // look at python convention
+            p2 = sqrt(ki) * phim; // TODO: look at what python code does (l 205, HagedornWavepacketCpp.py)
+            //p1 = (nodes - q) * phi[bas[k],:]
+            //p2 = sqrt(ki) * phim
 
-            t1 = sqrt(2.0/self._eps**2) * dot(Qinv[d,:], p1)
-            t2 = dot(QQ[d,:], p2)
+            t1 = sqrt(2.0/self._eps**2) * (Qinv.row(d)*p1) // secont () should be dot product
+            t2 = QQ.row(d)*p2 // should be dot-product
+            //t1 = sqrt(2.0/self._eps**2) * dot(Qinv[d,:], p1)
+            //t2 = dot(QQ[d,:], p2)
 
-            // Find multi-index where to store the result
-            kped = bas.get_neighbours(k, selection="forward", direction=d)
+            // Find multi-index in which to store the result
+            neighbours = bas.get_neighbours(*it, "forward", d);
 
             // Did we find this k?
-            if len(kped) > 0:
-                kped = kped[0]
-
+            if (neighbours.size() > 0) {
+                // only interested in first element
+                //kped = kped[0]
                 // Store computed value
-                phi[bas[kped[1]],:] = (t1 - t2) / sqrt(ki[d] + 1.0)
-
-    if prefactor is True:
-        // TODO: Use continuous sqrt function
-        phi = phi / sqrt(det(Q))
+                phi.row(bas.row(kped[0][1])) = (t1 - t2) / sqrt(ki[d] + 1.0)
+                //phi[bas[kped[1]],:] = (t1 - t2) / sqrt(ki[d] + 1.0)
+            }
+        }
+    }
+    if (prefactor)
+        phi /= sqrt(Q.det());
 
     return phi
-
-
+}
 #endif    /* EVAL_BASIS_CPP */
 
