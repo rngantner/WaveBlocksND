@@ -1,6 +1,10 @@
 
 from HyperCubicShape import HyperCubicShape
 
+import sys
+sys.path.append('../../src/')
+from WaveBlocksND import HyperCubicShape as HCS
+
 class TestHyperCubicShape(object):
     def __init__(self):
         self.n = 2
@@ -18,4 +22,10 @@ class TestHyperCubicShape(object):
         h = HyperCubicShape(self.n, self.limits, self.lima, self.lima_inv)
         for i,ind in enumerate(h):
             assert ind == self.indices[i]
+
+    def testSameAsPython(self):
+        h_py = HyperCubicShape(self.n*[1])
+        for i,ind in enumerate(h_py):
+            assert ind == self.indices[i]
+        
 
