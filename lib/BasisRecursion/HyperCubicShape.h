@@ -24,6 +24,10 @@ public:
     iterator begin(){
         return iterator(_limits,D,D-1);
     }
+    /** iterator pointing to first indices, given a direction. */
+    iterator begin(size_t dir){
+        return iterator(_limits,D,dir);
+    }
     /** 
      * \return iterator pointing to one past the last index (iterator::end_sentinel).
      * Used by boost::python::iterator converter

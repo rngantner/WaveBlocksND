@@ -152,7 +152,7 @@ evaluate_basis_at(
     // Compute all higher order states phi_k via recursion
     for (int d=0; d<D; d++){
         // Iterator for all valid index vectors k
-        ShapeType::iterator it = bas.begin(d); //TODO: pass argument d somehow (change HyperCubicShape)
+        ShapeType::iterator it = bas.begin(d);
 
         for (it=bas.begin(); it != bas.end(); it++) {
         //for k in indices:
