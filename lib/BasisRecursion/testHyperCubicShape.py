@@ -24,7 +24,7 @@ class TestHyperCubicShape(object):
             assert ind == self.indices[i]
 
     def testSameAsPython(self):
-        h_py = HyperCubicShape(self.n*[1])
+        h_py = HCS(self.n*[1])
         for i,ind in enumerate(h_py):
             assert ind == self.indices[i]
         
