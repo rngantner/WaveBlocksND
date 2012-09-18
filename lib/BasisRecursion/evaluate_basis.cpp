@@ -73,14 +73,6 @@ MatrixBase<DerivedVector> evaluate_phi0(const HagedornParameters& constants,
 */
 
 
-void get_node_iterator(){
-
-}
-
-void get_neighbours(){
-
-}
-
 
 /**
  * Evaluate basis functions \phi_k recursively at the given nodes \gamma_i \in \Gamma
@@ -105,7 +97,7 @@ void evaluate_at(MatrixBase<DerivedVector>&      nodes,
     return values;
 }
 
-typedef HyperCubicShape<EigIndexIterator> ShapeType;
+typedef HyperCubicShape<EigIndexIterator> ShapeType; // TODO: make template argument of evaluate_basis_at
 /**
  * \param grid The grid :math:\Gamma` containing the nodes :math:`\gamma`.
  * \type grid A class having a :py:method:`get_nodes(...)` method.
@@ -119,11 +111,12 @@ template<class DerivedVector>
 Matrix<complex<DerivedVector::RealScalar>,Dynamic,Dynamic> // return type
 evaluate_basis_at(
         MatrixBase<DerivedVector>& nodes,
-        HagedornParameters         P,
+        HagedornParameters         param,
         size_t                     D,
         boost::python::tuple       limits,
         boost::python::dict        lima,
         boost::python::dict        lima_inv,
+        MatrixBase<DerivedVector>& phi0, // different type?? need wrapper (also first arg.)
         bool                       prefactor=false)
 {
     // create instance of HyperCubicShape:
@@ -139,20 +132,22 @@ evaluate_basis_at(
     phi.setZero(bs,nn);
 
     // Precompute some constants
-    //q, p, Q, P, S = self._Pis // -> P.q, P.p, P.Q, ...
+    //q, p, Q, P, S = self._Pis // -> param.q, param.p, param.Q, ...
 
-    Qinv = inv(P.Q)
-    Qbar = conj(P.Q)
-    QQ = dot(Qinv, Qbar)
+    Matrix<complex<DerivedVector::RealScalar>,Dynamic,Dynamic> QQ;
+    QQ.resize(Q.rows(),Q.cols());
+    QQ = param.Q.inverse() * param.Q.conjugate();
 
-    // Compute the ground state phi_0 via direct evaluation
+    // ground state phi_0 via direct evaluation (passed from python)
     mu0 = bas[tuple(D*[0])] // map tuple to index
-    phi[mu0,:] = evaluate_phi0(self._Pis, nodes, prefactor=False)
+    //phi[mu0,:] = evaluate_phi0(self._Pis, nodes, prefactor=False)
+    phi[mu0,:] = phi0;
 
     // Compute all higher order states phi_k via recursion
+    ShapeType::iterator it;
     for (int d=0; d<D; d++){
         // Iterator for all valid index vectors k
-        ShapeType::iterator it = bas.begin(d);
+        it = bas.begin(d);
 
         for (it=bas.begin(); it != bas.end(); it++) {
         //for k in indices:
