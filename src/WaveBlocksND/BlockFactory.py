@@ -11,11 +11,21 @@ __all__ = ["BlockFactory"]
 
 
 class BlockFactory(object):
-    """A factory for :py:class:`Wavepacket` instances.
+    """A factory to create instances of various classes
+    based on a simple description ``dict``.
     """
 
     def __init__(self):
-        pass
+
+        # Load different factory methods
+        import GridFactory
+        self.__dict__["create_grid"] = GridFactory.create_grid
+
+        import PotentialFactory
+        self.__dict__["create_potential"] = PotentialFactory.create_potential
+
+        import MatrixExponentialFactory
+        self.__dict__["create_matrixexponential"] = MatrixExponentialFactory.create_matrixexponential
 
 
     # TODO: Consider "local" vs "global" description dicts
@@ -54,7 +64,41 @@ class BlockFactory(object):
             from HagedornWavepacket import HagedornWavepacket
 
             # Initialize a packet
-            WP = HagedornWavepacket(description)
+            WP = HagedornWavepacket(description["dimension"],
+                                    description["ncomponents"],
+                                    description["eps"])
+
+            # Set parameters
+            if description.has_key("Pi"):
+                Pi = description["Pi"]
+                WP.set_parameters(Pi)
+
+            # Configure basis shapes
+            if description.has_key("basis_shapes"):
+                for component, shapedescr in enumerate(description["basis_shapes"]):
+                    BS = self.create_basis_shape(shapedescr)
+                    WP.set_basis_shape(BS, component=component)
+
+            # Set coefficients
+            if description.has_key("coefficients"):
+                for component, data in enumerate(description["coefficients"]):
+                    for index, value in data:
+                        WP.set_coefficient(component, index, value)
+
+            # And the quadrature
+            if description.has_key("quadrature"):
+                QE = self.create_quadrature(description["quadrature"])
+                WP.set_quadrature(QE)
+            else:
+                print("Warning: no quadrature specified!")
+
+        elif wp_type == "HagedornWavepacketInhomogeneous":
+            from HagedornWavepacketInhomogeneous import HagedornWavepacketInhomogeneous
+
+            # Initialize a packet
+            WP = HagedornWavepacketInhomogeneous(description["dimension"],
+                                    description["ncomponents"],
+                                    description["eps"])
 
             # Set parameters
             if description.has_key("Pi"):

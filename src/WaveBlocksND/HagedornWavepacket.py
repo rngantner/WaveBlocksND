@@ -7,15 +7,16 @@ This file contains the class which represents a homogeneous Hagedorn wavepacket.
 @license: Modified BSD License
 """
 
-from functools import partial
-from numpy import zeros, complexfloating, array, sum, transpose, arange, vstack, eye, prod, atleast_2d
-from scipy import pi, sqrt, exp, conj, dot
-from scipy.linalg import norm, inv, det
+from numpy import zeros, complexfloating, array, sum, vstack, eye, prod, atleast_2d
+from scipy import sqrt, exp, conj, dot
+from scipy.linalg import inv, det
 
 from HagedornWavepacketBase import HagedornWavepacketBase
 from HyperCubicShape import HyperCubicShape
 from Grid import Grid
-import GlobalDefaults as GD
+from ComplexMath import ContinuousSqrt
+
+__all__ = ["HagedornWavepacket"]
 
 
 class HagedornWavepacket(HagedornWavepacketBase):
@@ -23,15 +24,18 @@ class HagedornWavepacket(HagedornWavepacketBase):
     :math:`\Psi` with :math:`N` components in :math:`D` space dimensions.
     """
 
-    def __init__(self, parameters):
-        r"""
+    def __init__(self, dimension, ncomponents, eps):
+        r"""Initialize a new homogeneous Hagedorn wavepacket.
+
+        :param dimension: The space dimension :math:`D` the packet has.
+        :param ncomponents: The number :math:`N` of components the packet has.
+        :param eps: The semi-classical scaling parameter :math:`\varepsilon` of the basis functions.
+        :return: An instance of :py:class:`HagedornWavepacket`.
         """
-        # TODO: Simpler way to initialize wavepackets. Maybe use a builder?
+        self._dimension = dimension
+        self._number_components = ncomponents
 
-        self._dimension = parameters["dimension"]
-        self._number_components = parameters["ncomponents"]
-
-        self._eps = parameters["eps"]
+        self._eps = eps
 
         # The basis shapes K_i
         self._basis_shapes = []
@@ -62,6 +66,9 @@ class HagedornWavepacket(HagedornWavepacketBase):
         # No quadrature set
         self._QE = None
 
+        # Function for taking continuous roots
+        self._sqrt = ContinuousSqrt()
+
 
     def __str__(self):
         r""":return: A string describing the Hagedorn wavepacket :math:`\Psi`.
@@ -89,12 +96,12 @@ class HagedornWavepacket(HagedornWavepacketBase):
 
     def clone(self, keepid=False):
         # Parameters of this packet
-        params = {"dimension":   self._dimension,
-                  "ncomponents": self._number_components,
-                  "eps":         self._eps}
-
+        params = self.get_description()
         # Create a new Packet
-        other = HagedornWavepacket(params)
+        # TODO: Consider using the block factory
+        other = HagedornWavepacket(params["dimension"],
+                                   params["ncomponents"],
+                                   params["eps"])
         # If we wish to keep the packet ID
         if keepid is True:
             other.set_id(self.get_id())
@@ -103,6 +110,10 @@ class HagedornWavepacket(HagedornWavepacketBase):
         other.set_basis_shape(self.get_basis_shape())
         other.set_parameters(self.get_parameters())
         other.set_coefficients(self.get_coefficients())
+        # Quadratures are immutable, no issues with sharing same instance
+        other.set_quadrature(self.get_quadrature())
+        # The complex root cache
+        other._sqrt = self._sqrt.clone()
 
         return other
 
@@ -133,7 +144,7 @@ class HagedornWavepacket(HagedornWavepacketBase):
         r"""Evaluate the basis functions :math:`\phi_k` recursively at the given nodes :math:`\gamma`.
 
         :param grid: The grid :math:\Gamma` containing the nodes :math:`\gamma`.
-        :type grid: A class having a :py:method:`get_nodes(...)` method.
+        :type grid: A class having a :py:meth:`get_nodes(...)` method.
         :param component: The index :math:`i` of a single component :math:`\Phi_i` to evaluate.
                           We need this to choose the correct basis shape.
         :param prefactor: Whether to include a factor of :math:`\frac{1}{\sqrt{\det(Q)}}`.
@@ -207,8 +218,7 @@ class HagedornWavepacket(HagedornWavepacketBase):
                     phi[bas[kped[1]],:] = (t1 - t2) / sqrt(ki[d] + 1.0)
 
         if prefactor is True:
-            # TODO: Use continuous sqrt function
-            phi = phi / sqrt(det(Q))
+            phi = phi / self._sqrt(det(Q))
 
         return phi
 
@@ -217,7 +227,7 @@ class HagedornWavepacket(HagedornWavepacketBase):
         r"""Evaluate the Hagedorn wavepacket :math:`\Psi` at the given nodes :math:`\gamma`.
 
         :param grid: The grid :math:\Gamma` containing the nodes :math:`\gamma`.
-        :type grid: A class having a :py:method:`get_nodes(...)` method.
+        :type grid: A class having a :py:meth:`get_nodes(...)` method.
         :param component: The index :math:`i` of a single component :math:`\Phi_i` to evaluate.
                           (Defaults to ``None`` for evaluating all components.)
         :param prefactor: Whether to include a factor of :math:`\frac{1}{\sqrt{\det(Q)}}`.

@@ -11,11 +11,11 @@ for the homogeneous Hagedorn propagator.
 from SimulationLoop import SimulationLoop
 from IOManager import IOManager
 from TimeManager import TimeManager
-from PotentialFactory import PotentialFactory
 from BlockFactory import BlockFactory
 from BasisTransformationHAWP import BasisTransformationHAWP
 from HagedornPropagator import HagedornPropagator
-from BlockFactory import BlockFactory
+
+__all__ = ["SimulationLoopHagedorn"]
 
 
 class SimulationLoopHagedorn(SimulationLoop):
@@ -40,10 +40,10 @@ class SimulationLoopHagedorn(SimulationLoop):
         # A `IOManager` instance for saving simulation results.
         self.IOManager = None
 
-        # Which data do we want to save
+        # The time manager
         self._tm = TimeManager(self.parameters)
 
-        # Set up serializing of simulation data
+        # Set up serialization of simulation data
         self.IOManager = IOManager()
         self.IOManager.create_file(self.parameters)
 
@@ -55,7 +55,7 @@ class SimulationLoopHagedorn(SimulationLoop):
         :raise ValueError: For invalid or missing input data.
         """
         # The potential instance
-        potential = PotentialFactory().create_potential(self.parameters)
+        potential = BlockFactory().create_potential(self.parameters)
 
         # Project the initial values to the canonical basis
         BT = BasisTransformationHAWP(potential)
@@ -64,7 +64,7 @@ class SimulationLoopHagedorn(SimulationLoop):
         # TODO: Attach the "leading_component to the hawp as codata
         self.propagator = HagedornPropagator(self.parameters, potential)
 
-        # Create  suitable wavepackets
+        # Create suitable wavepackets
         chi = self.parameters["leading_component"]
 
         for packet_descr in self.parameters["initvals"]:

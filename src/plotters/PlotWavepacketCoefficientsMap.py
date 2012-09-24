@@ -13,7 +13,7 @@ basis shapes are adaptive and their mappings mu incompatible!
 """
 
 import sys
-from numpy import squeeze, real, imag, abs, angle
+from numpy import abs, angle
 from matplotlib.pyplot import *
 
 from WaveBlocksND import IOManager
@@ -58,18 +58,13 @@ def read_data_inhomogeneous(iom, blockid=0):
     :param iom: An :py:class:`IOManager` instance providing the simulation data.
     :param blockid: The data block from which the values are read.
     """
-    pass
-#     parameters = iom.load_parameters()
-#     timegrid = iom.load_inhomogwavepacket_timegrid(blockid=blockid)
-#     time = timegrid * parameters["dt"]
+    parameters = iom.load_parameters()
+    timegrid = iom.load_inhomogwavepacket_timegrid(blockid=blockid)
+    time = timegrid * parameters["dt"]
 
-#     C = iom.load_inhomogwavepacket_coefficients(blockid=blockid)
+    hashes, coeffs = iom.load_inhomogwavepacket_coefficients(blockid=blockid, get_hashes=True)
 
-#     coeffs = []
-#     for i in xrange(parameters["ncomponents"]):
-#         coeffs.append(squeeze(C[:,i,:]))
-
-#     return time, coeffs
+    return time, coeffs
 
 
 def plot_coefficients(parameters, data, index=0, imgsize=(10,20)):
@@ -90,7 +85,9 @@ def plot_coefficients(parameters, data, index=0, imgsize=(10,20)):
 
         # Scale the image to roughly fit the data shape
         v, u = coeff.shape
-        imgsize = (imgsize[0], int(10*v / (1.0*u)))
+        imags = (imgsize[0], int(10*v / (1.0*u)))
+        if imags[1] < 10000:
+            imgsize = imags
 
         fig = figure(figsize=imgsize)
         ax = gca()

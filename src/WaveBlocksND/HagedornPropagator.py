@@ -8,10 +8,13 @@ This file contains the Hagedorn propagator class for homogeneous wavepackets.
 """
 
 from functools import partial
-from numpy import dot
+from numpy import dot, eye, atleast_2d
+from numpy.linalg import inv
 
 from Propagator import Propagator
-from MatrixExponentialFactory import MatrixExponentialFactory
+from BlockFactory import BlockFactory
+
+__all__ = ["HagedornPropagator"]
 
 
 class HagedornPropagator(Propagator):
@@ -28,9 +31,6 @@ class HagedornPropagator(Propagator):
 
         :param potential: The potential :math:`V(x)` the wavepacket :math:`\Psi` feels during the time propagation.
         :param packet: The initial homogeneous Hagedorn wavepacket :math:`\Psi` we propagate in time.
-        :param leading_component: The leading component index :math:`\chi`.
-
-
         :raises ValueError: If the number of components of :math:`\Psi` does not match
                             the number of energy levels :math:`\lambda_i` of the potential.
         """
@@ -39,6 +39,7 @@ class HagedornPropagator(Propagator):
 
         # Number :math:`N` of components the wavepacket :math:`\Psi` has got.
         self._number_components = self._potential.get_number_components()
+        self._dimension = self._potential.get_dimension()
 
         # A list of Hagedorn wavepackets :math:`\Psi` together with some codata
         # like the leading component :math:`\chi` which is the index of the eigenvalue
@@ -53,8 +54,18 @@ class HagedornPropagator(Propagator):
 
         self._dt = self._parameters["dt"]
 
+        # The relative mass scaling matrix M
+        if self._parameters.has_key("mass_scaling"):
+            self._M = atleast_2d(self._parameters["mass_scaling"])
+            assert self._M.shape == (self._dimension, self._dimension)
+            self._Minv = inv(self._M)
+        else:
+            # No mass matrix given. Scale all masses equally
+            self._M = eye(self._dimension)
+            self._Minv = self._M
+
         # Decide about the matrix exponential algorithm to use
-        self.__dict__["_matrix_exponential"] = MatrixExponentialFactory().get_matrixexponential(parameters)
+        self.__dict__["_matrix_exponential"] = BlockFactory().create_matrixexponential(parameters)
 
         # Precalculate the potential splittings needed
         self._prepare_potential()
@@ -62,7 +73,7 @@ class HagedornPropagator(Propagator):
 
     def __str__(self):
         r"""Prepare a printable string representing the :py:class:`HagedornPropagator` instance."""
-        return "Hagedorn propagator for " + str(self._number_components) + " components.\n"
+        return "Homogeneous Hagedorn propagator for " + str(self._number_components) + " components.\n"
 
 
     def _prepare_potential(self):
@@ -125,6 +136,7 @@ class HagedornPropagator(Propagator):
         """
         # Cache some parameter values
         dt = self._dt
+        Mi = self._Minv
 
         # Propagate all packets
         for packet, leading_chi in self._packets:
@@ -132,9 +144,9 @@ class HagedornPropagator(Propagator):
 
             # Do a kinetic step of dt/2
             q, p, Q, P, S = packet.get_parameters()
-            q = q + 0.5 * dt * p
-            Q = Q + 0.5 * dt * P
-            S = S + 0.25 * dt * dot(p.T, p)
+            q = q + 0.5 * dt * dot(Mi, p)
+            Q = Q + 0.5 * dt * dot(Mi, P)
+            S = S + 0.25 * dt * dot(p.T, dot(Mi, p))
             packet.set_parameters((q, p, Q, P, S))
 
             # Do a potential step with the local quadratic part
@@ -156,7 +168,7 @@ class HagedornPropagator(Propagator):
 
             # Do a kinetic step of dt/2
             q, p, Q, P, S = packet.get_parameters()
-            q = q + 0.5 * dt * p
-            Q = Q + 0.5 * dt * P
-            S = S + 0.25 * dt * dot(p.T, p)
+            q = q + 0.5 * dt * dot(Mi, p)
+            Q = Q + 0.5 * dt * dot(Mi, P)
+            S = S + 0.25 * dt * dot(p.T, dot(Mi, p))
             packet.set_parameters((q, p, Q, P, S))

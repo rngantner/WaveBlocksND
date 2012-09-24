@@ -2,7 +2,8 @@
 
 This file contains some ready made potentials in several variables
 and with several separate energy levels. This is a pure data file
-without any code. To load the potentials, use the :py:class:`PotentialFactory`.
+without any code. To load the potentials, use the methods of
+:py:class:`BlockFactory`.
 
 @author: R. Bourquin
 @copyright: Copyright (C) 2010, 2011, 2012 R. Bourquin
@@ -182,6 +183,24 @@ delta_gap_rotsym = {}
 delta_gap_rotsym["variables"] = ["x", "y"]
 delta_gap_rotsym["potential"] = [["tanh(sqrt(x**2 + y**2))/2",                      "delta"],
                                  ["delta"                    , "-tanh(sqrt(x**2 + y**2))/2"]]
+
+conic = {}
+conic["variables"] = ["x", "y"]
+conic["potential"] = [["x",  "y"],
+                      ["y", "-x"]]
+
+conic_avoided = {}
+conic_avoided["variables"] = ["x", "y"]
+conic_avoided["potential"] = [["x",                   "sqrt(y**2+delta**2)"],
+                              ["sqrt(y**2+delta**2)", "-x"                 ]]
+conic_avoided["defaults"] = {"delta":1.0}
+
+conic_avoided_c = {}
+conic_avoided_c["variables"] = ["x", "y"]
+conic_avoided_c["potential"] = [["x",           "y + I*delta"],
+                                ["y - I*delta", "-x"         ]]
+
+
 
 
 ########################################################################

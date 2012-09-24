@@ -15,15 +15,12 @@ import numpy as np
 def add_wavepacket(self, parameters, timeslots=None, blockid=0):
     r"""Add storage for the homogeneous wavepackets.
 
-    :param parameters: An :py:class:`ParameterProvider` instance with at least the keys ``dimension``, ``basis_size`` and ``ncomponents``.
+    :param parameters: An :py:class:`ParameterProvider` instance with at
+                       least the keys ``dimension`` and ``ncomponents``.
+    :param timeslots: The number of time slots we need. Can be ``None``
+                      to get automatically growing datasets.
+    :param blockid: The ID of the data block to operate on.
     """
-    # If we run with an adaptive basis size, then we must make the data tensor size maximal
-    # TODO: Ugly, improve:
-    if parameters.has_key("max_basis_size"):
-        bs = parameters["max_basis_size"]
-    else:
-        bs = np.max(parameters["basis_size"])
-
     N = parameters["ncomponents"]
     D = parameters["dimension"]
 
@@ -48,7 +45,7 @@ def add_wavepacket(self, parameters, timeslots=None, blockid=0):
         daset_P = grp_pi.create_dataset("P", (0, D, D), dtype=np.complexfloating, chunks=True, maxshape=(None,D,D))
         daset_S = grp_pi.create_dataset("S", (0, 1, 1), dtype=np.complexfloating, chunks=True, maxshape=(None,1,1))
         for i in xrange(N):
-            daset_c_i = grp_ci.create_dataset("c_"+str(i), (0, bs), dtype=np.complexfloating, chunks=True, maxshape=(None,bs))
+            daset_c_i = grp_ci.create_dataset("c_"+str(i), (0, 1), dtype=np.complexfloating, chunks=True, maxshape=(None,None))
     else:
         # User specified how much space is necessary.
         daset_tg = grp_wp.create_dataset("timegrid", (timeslots,), dtype=np.integer)
@@ -60,8 +57,10 @@ def add_wavepacket(self, parameters, timeslots=None, blockid=0):
         daset_P = grp_pi.create_dataset("P", (timeslots, D, D), dtype=np.complexfloating)
         daset_S = grp_pi.create_dataset("S", (timeslots, 1, 1), dtype=np.complexfloating)
         for i in xrange(N):
-            daset_c_i = grp_ci.create_dataset("c_"+str(i), (timeslots, bs), dtype=np.complexfloating)
+            daset_c_i = grp_ci.create_dataset("c_"+str(i), (timeslots, 1), dtype=np.complexfloating, chunks=True, maxshape=(None,None))
 
+    # Mark all steps as invalid
+    daset_tg[...] = -1.0
     # Attach pointer to data instead timegrid
     grp_pi.attrs["pointer"] = 0
     grp_ci.attrs["pointer"] = 0
@@ -69,6 +68,8 @@ def add_wavepacket(self, parameters, timeslots=None, blockid=0):
 
 def delete_wavepacket(self, blockid=0):
     r"""Remove the stored wavepackets.
+
+    :param blockid: The ID of the data block to operate on.
     """
     try:
         del self._srf[self._prefixb+str(blockid)+"/wavepacket"]
@@ -78,11 +79,18 @@ def delete_wavepacket(self, blockid=0):
 
 def has_wavepacket(self, blockid=0):
     r"""Ask if the specified data block has the desired data tensor.
+
+    :param blockid: The ID of the data block to operate on.
     """
     return "wavepacket" in self._srf[self._prefixb+str(blockid)].keys()
 
 
 def save_wavepacket_description(self, descr, blockid=0):
+    r"""Save the description of this wavepacket.
+
+    :param descr: The description.
+    :param blockid: The ID of the data block to operate on.
+    """
     pathd = "/"+self._prefixb+str(blockid)+"/wavepacket"
     # Save the description
     for key, value in descr.iteritems():
@@ -96,6 +104,8 @@ def save_wavepacket_parameters(self, parameters, timestep=None, blockid=0):
 
     :param parameters: The parameter set of the Hagedorn wavepacket.
     :type parameters: A ``list`` containing the five ``ndarrays`` like :math:`(q,p,Q,P,S)`
+    :param timestep: The timestep at which we save the data.
+    :param blockid: The ID of the data block to operate on.
     """
     pathtg = "/"+self._prefixb+str(blockid)+"/wavepacket/timegrid"
     pathd = "/"+self._prefixb+str(blockid)+"/wavepacket/Pi/"
@@ -123,6 +133,8 @@ def save_wavepacket_coefficients(self, coefficients, basisshapes, timestep=None,
     :type coefficients: A ``list`` with :math:`N` suitable ``ndarrays``.
     :param basisshapes: The corresponding basis shapes of the Hagedorn wavepacket.
     :type basisshapes: A ``list`` with :math:`N` :py:class:`BasisShape` subclass instances.
+    :param timestep: The timestep at which we save the data.
+    :param blockid: The ID of the data block to operate on.
     """
     pathtg = "/"+self._prefixb+str(blockid)+"/wavepacket/timegrid"
     pathbs = "/"+self._prefixb+str(blockid)+"/wavepacket/basis_shape_hash"
@@ -137,6 +149,9 @@ def save_wavepacket_coefficients(self, coefficients, basisshapes, timestep=None,
     for index, (bs,ci) in enumerate(zip(basisshapes, coefficients)):
         self.must_resize(pathd+"c_"+str(index), timeslot)
         size = bs.get_basis_size()
+        # Do we have to resize due to changed number of coefficients
+        if self._srf[pathd+"c_"+str(index)].shape[1] < size:
+            self._srf[pathd+"c_"+str(index)].resize(size, axis=1)
         self._srf[pathbsi][timeslot,index] = size
         self._srf[pathbs][timeslot,index] = hash(bs)
         self._srf[pathd+"c_"+str(index)][timeslot,:size] = np.squeeze(ci)
@@ -152,7 +167,8 @@ def save_wavepacket_coefficients(self, coefficients, basisshapes, timestep=None,
 def save_wavepacket_basisshapes(self, basisshape, blockid=0):
     r"""Save the basis shapes of the Hagedorn wavepacket to a file.
 
-    :param coefficients: The basis shapes of the Hagedorn wavepacket.
+    :param basisshape: The basis shape of the Hagedorn wavepacket.
+    :param blockid: The ID of the data block to operate on.
     """
     pathd = "/"+self._prefixb+str(blockid)+"/wavepacket/basisshapes/"
 
@@ -176,6 +192,10 @@ def save_wavepacket_basisshapes(self, basisshape, blockid=0):
 
 
 def load_wavepacket_description(self, blockid=0):
+    r"""Load the wavepacket description.
+
+    :param blockid: The ID of the data block to operate on.
+    """
     pathd = "/"+self._prefixb+str(blockid)+"/wavepacket"
 
     # Load and return all descriptions available
@@ -186,11 +206,20 @@ def load_wavepacket_description(self, blockid=0):
 
 
 def load_wavepacket_timegrid(self, blockid=0):
+    r"""Load the wavepacket timegrid.
+
+    :param blockid: The ID of the data block to operate on.
+    """
     pathtg = "/"+self._prefixb+str(blockid)+"/wavepacket/timegrid"
     return self._srf[pathtg][:]
 
 
 def load_wavepacket_parameters(self, timestep=None, blockid=0):
+    r"""Load the wavepacket parameters.
+
+    :param timestep: Load only the data of this timestep.
+    :param blockid: The ID of the data block to operate on.
+    """
     pathtg = "/"+self._prefixb+str(blockid)+"/wavepacket/timegrid"
     pathd = "/"+self._prefixb+str(blockid)+"/wavepacket/Pi/"
     if timestep is not None:
@@ -203,6 +232,13 @@ def load_wavepacket_parameters(self, timestep=None, blockid=0):
 
 
 def load_wavepacket_coefficients(self, timestep=None, get_hashes=False, component=None, blockid=0):
+    r"""Load the wavepacket coefficients.
+
+    :param timestep: Load only the data of this timestep.
+    :param get_hashes: Return the corresponding basis shape hashes.
+    :param component: Load only data from this component.
+    :param blockid: The ID of the data block to operate on.
+    """
     pathtg = "/"+self._prefixb+str(blockid)+"/wavepacket/timegrid"
     pathbs = "/"+self._prefixb+str(blockid)+"/wavepacket/basis_shape_hash"
     pathbsi = "/"+self._prefixb+str(blockid)+"/wavepacket/basis_size"
@@ -222,7 +258,7 @@ def load_wavepacket_coefficients(self, timestep=None, get_hashes=False, componen
     data = []
     for i in xrange(len(self._srf[pathd].keys())):
         if timestep is not None:
-            size = self._srf[pathbsi][timestep,i]
+            size = self._srf[pathbsi][index,i]
             data.append( self._srf[pathd+"c_"+str(i)][index,:size] )
         else:
             data.append( self._srf[pathd+"c_"+str(i)][index,...] )
@@ -235,6 +271,9 @@ def load_wavepacket_coefficients(self, timestep=None, get_hashes=False, componen
 
 def load_wavepacket_basisshapes(self, the_hash=None, blockid=0):
     r"""Load the basis shapes by hash.
+
+    :param the_hash: The hash of the basis shape whose description we want to load.
+    :param blockid: The ID of the data block to operate on.
     """
     pathd = "/"+self._prefixb+str(blockid)+"/wavepacket/basisshapes/"
 

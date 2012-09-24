@@ -50,6 +50,7 @@ Basic quantum mechanics
    waveblocks_classes/MatrixPotential
    waveblocks_classes/MatrixPotential1S
    waveblocks_classes/MatrixPotential2S
+   waveblocks_classes/MatrixPotentialMS
 
    waveblocks_classes/PotentialFactory
 
@@ -61,6 +62,8 @@ Wavepackets
 
    waveblocks_classes/BasisShape
    waveblocks_classes/HyperCubicShape
+   waveblocks_classes/HyperbolicCutShape
+   waveblocks_classes/LimitedHyperbolicCutShape
 
    waveblocks_classes/Wavepacket
    waveblocks_classes/HagedornWavepacketBase
@@ -92,12 +95,16 @@ Time propagation
 .. toctree::
    :maxdepth: 1
 
+   waveblocks_classes/KineticOperator
    waveblocks_classes/Propagator
    waveblocks_classes/FourierPropagator
    waveblocks_classes/HagedornPropagator
+   waveblocks_classes/HagedornPropagatorInhomogeneous
+   waveblocks_classes/SimulationLoop
+   waveblocks_classes/SimulationLoopFourier
+   waveblocks_classes/SimulationLoopHagedorn
+   waveblocks_classes/SimulationLoopHagedornInhomogeneous
 
-
-   waveblocks_classes/HyperbolicCutShape
 
 Simulation result storage I/O
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -107,6 +114,14 @@ Simulation result storage I/O
    waveblocks_classes/IOManager
 
    waveblocks_classes/IOM_plugin_parameters
+   waveblocks_classes/IOM_plugin_grid
+   waveblocks_classes/IOM_plugin_wavefunction
+   waveblocks_classes/IOM_plugin_fourieroperators
+   waveblocks_classes/IOM_plugin_wavepacket
+   waveblocks_classes/IOM_plugin_inhomogwavepacket
+   waveblocks_classes/IOM_plugin_norm
+   waveblocks_classes/IOM_plugin_energy
+
 
 Other classes
 ^^^^^^^^^^^^^
@@ -117,8 +132,7 @@ Other classes
    waveblocks_classes/GlobalDefaults
    waveblocks_classes/ParameterLoader
    waveblocks_classes/ParameterProvider
-   waveblocks_classes/Utils
-
+   waveblocks_classes/FileTools
 
 Etc
 ===

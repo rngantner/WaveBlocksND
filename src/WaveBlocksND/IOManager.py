@@ -14,6 +14,8 @@ import numpy as np
 
 import GlobalDefaults
 
+__all__ = ["IOManager"]
+
 
 class IOManager(object):
     """An IOManager class that can save various simulation results into data
@@ -236,7 +238,7 @@ class IOManager(object):
         if self._srf is None:
             return
 
-        if blockid is not None and (not str(blockid).isalnum() or str(blockid)[0].isdigit()):
+        if blockid is not None and (not str(blockid).isalnum()):# or str(blockid)[0].isdigit()):
             raise ValueError("Block ID allows only characters A-Z, a-z and 0-9 and no leading digit.")
 
         if blockid is not None and str(blockid) in self._block_ids:
@@ -278,7 +280,7 @@ class IOManager(object):
         if self._srf is None:
             return
 
-        if groupid is not None and (not str(groupid).isalnum() or str(groupid)[0].isdigit()):
+        if groupid is not None and (not str(groupid).isalnum()):# or str(groupid)[0].isdigit()):
             raise ValueError("Group ID allows only characters A-Z, a-z and 0-9 and no leading digit.")
 
         if groupid is not None and str(groupid) in self._group_ids:

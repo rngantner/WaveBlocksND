@@ -10,9 +10,8 @@ time propagation.
 """
 
 import sys
-from numpy import real, imag, abs, squeeze
+from numpy import real, imag, abs, squeeze, array
 from numpy.linalg import norm, det
-from matplotlib.mlab import amap
 from matplotlib.pyplot import *
 
 from WaveBlocksND import ComplexMath
@@ -46,12 +45,14 @@ def read_data_homogeneous(iom, blockid=0):
     time = timegrid * parameters["dt"]
 
     Pi = iom.load_wavepacket_parameters(blockid=blockid)
-    Pi = map(squeeze, Pi)
     qhist, phist, Qhist, Phist, Shist = Pi
-    qhist = amap(norm, qhist)
-    phist = amap(norm, phist)
-    Qhist = amap(det, Qhist)
-    Phist = amap(det, Phist)
+
+    qhist = squeeze(array([ norm(qhist[i,:]) for i in xrange(qhist.shape[0]) ]))
+    phist = squeeze(array([ norm(phist[i,:]) for i in xrange(phist.shape[0]) ]))
+    Qhist = squeeze(array([ det(Qhist[i,:,:]) for i in xrange(Qhist.shape[0]) ]))
+    Phist = squeeze(array([ det(Phist[i,:,:]) for i in xrange(Phist.shape[0]) ]))
+    Shist = squeeze(Shist)
+
     return (time, [qhist], [phist], [Qhist], [Phist], [Shist])
 
 
@@ -61,21 +62,26 @@ def read_data_inhomogeneous(iom, blockid=0):
     :param blockid: The data block from which the values are read.
     """
     parameters = iom.load_parameters()
-#     timegrid = iom.load_inhomogwavepacket_timegrid(blockid=blockid)
-#     time = timegrid * parameters["dt"]
+    timegrid = iom.load_inhomogwavepacket_timegrid(blockid=blockid)
+    time = timegrid * parameters["dt"]
 
-#     Pi = iom.load_inhomogwavepacket_parameters(blockid=blockid)
+    Pis = iom.load_inhomogwavepacket_parameters(blockid=blockid)
 
-#     # Number of components
-#     N = parameters["ncomponents"]
+    # List with Pi time evolutions
+    Phist = []
+    Qhist = []
+    Shist = []
+    phist = []
+    qhist = []
 
-#     Phist = [ Pi[i][:,0] for i in xrange(N) ]
-#     Qhist = [ Pi[i][:,1] for i in xrange(N) ]
-#     Shist = [ Pi[i][:,2] for i in xrange(N) ]
-#     phist = [ Pi[i][:,3] for i in xrange(N) ]
-#     qhist = [ Pi[i][:,4] for i in xrange(N) ]
+    for q,p,Q,P,S in Pis:
+        qhist.append(squeeze(q))
+        phist.append(squeeze(p))
+        Qhist.append(squeeze(Q))
+        Phist.append(squeeze(P))
+        Shist.append(squeeze(S))
 
-#    return (time, Phist, Qhist, Shist, phist, qhist)
+    return (time, qhist, phist, Qhist, Phist, Shist)
 
 
 def plot_parameters(data, index=0):
@@ -193,6 +199,8 @@ def plot_parameters(data, index=0):
     ax = fig.gca()
     for item in Phist:
         ax.plot(real(item), imag(item), "-o")
+    ax.set_xlabel(r"$\Re \det P$")
+    ax.set_ylabel(r"$\Im \det P$")
     ax.grid(True)
     ax.set_title(r"Trajectory of $\det P$")
     fig.savefig("wavepacket_parameters_trajectoryP_block"+str(index)+GD.output_format)
@@ -204,6 +212,8 @@ def plot_parameters(data, index=0):
     ax = fig.gca()
     for item in Qhist:
         ax.plot(real(item), imag(item), "-o")
+    ax.set_xlabel(r"$\Re \det Q$")
+    ax.set_ylabel(r"$\Im \det Q$")
     ax.grid(True)
     ax.set_title(r"Trajectory of $\det Q$")
     fig.savefig("wavepacket_parameters_trajectoryQ_block"+str(index)+GD.output_format)

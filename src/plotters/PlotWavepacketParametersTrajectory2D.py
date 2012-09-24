@@ -10,12 +10,9 @@ time propagation.
 """
 
 import sys
-from numpy import real, imag, abs, squeeze
-from numpy.linalg import norm, det
-from matplotlib.mlab import amap
+from numpy import squeeze
 from matplotlib.pyplot import *
 
-from WaveBlocksND import ComplexMath
 from WaveBlocksND import IOManager
 
 import GraphicsDefaults as GD
@@ -64,21 +61,32 @@ def read_data_inhomogeneous(iom, blockid=0):
     :param blockid: The data block from which the values are read.
     """
     parameters = iom.load_parameters()
-#     timegrid = iom.load_inhomogwavepacket_timegrid(blockid=blockid)
-#     time = timegrid * parameters["dt"]
+    timegrid = iom.load_inhomogwavepacket_timegrid(blockid=blockid)
+    time = timegrid * parameters["dt"]
 
-#     Pi = iom.load_inhomogwavepacket_parameters(blockid=blockid)
+    Pis = iom.load_inhomogwavepacket_parameters(blockid=blockid)
 
-#     # Number of components
-#     N = parameters["ncomponents"]
+    # The Dimension D, we know that q_0 has shapw (#timesteps, D, 1)
+    D = Pis[0][0].shape[1]
+    if not D == 2:
+        print("Warning: Trajectory plotting implemented only for 2D wavepackets")
+        return
 
-#     Phist = [ Pi[i][:,0] for i in xrange(N) ]
-#     Qhist = [ Pi[i][:,1] for i in xrange(N) ]
-#     Shist = [ Pi[i][:,2] for i in xrange(N) ]
-#     phist = [ Pi[i][:,3] for i in xrange(N) ]
-#     qhist = [ Pi[i][:,4] for i in xrange(N) ]
+    # List with Pi time evolutions
+    Phist = []
+    Qhist = []
+    Shist = []
+    phist = []
+    qhist = []
 
-#    return (time, Phist, Qhist, Shist, phist, qhist)
+    for q,p,Q,P,S in Pis:
+        qhist.append(squeeze(q))
+        phist.append(squeeze(p))
+        Qhist.append(squeeze(Q))
+        Phist.append(squeeze(P))
+        Shist.append(squeeze(S))
+
+    return (time, qhist, phist, Qhist, Phist, Shist)
 
 
 def plot_parameters(data, index=0):
@@ -95,16 +103,19 @@ def plot_parameters(data, index=0):
     ax = fig.gca()
     for item in qhist:
         ax.plot(item[:,0], item[:,1], "-o", label=r"Trajectory of $q$")
+    ax.set_xlabel(r"$q_x$")
+    ax.set_ylabel(r"$q_y$")
     ax.grid(True)
     ax.set_title(r"Trajectory of $q$")
     fig.savefig("wavepacket_parameters_trajectoryq_block"+str(index)+GD.output_format)
     close(fig)
 
-    # Plot the 2D trajectory of the parameters q and p
     fig = figure()
     ax = fig.gca()
     for item in phist:
         ax.plot(item[:,0], item[:,1], "-o", label=r"Trajectory of $p$")
+    ax.set_xlabel(r"$p_x$")
+    ax.set_ylabel(r"$p_y$")
     ax.grid(True)
     ax.set_title(r"Trajectory of $p$")
     fig.savefig("wavepacket_parameters_trajectoryp_block"+str(index)+GD.output_format)
