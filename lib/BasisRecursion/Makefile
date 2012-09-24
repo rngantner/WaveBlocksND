@@ -26,6 +26,7 @@ BOOSTPYLIBS=/usr/lib
 #PYLIBS=/usr/lib # ?? not needed ??
 
 modulename=HyperCubicShape
+modulename2=evaluate_basis
 
 all: python prog
  
@@ -37,8 +38,13 @@ prog: ${modulename}.cpp
 	$(CC) $(CFLAGS) -c -I$(PYHEADERS) -I$(EIGEN3) ${modulename}.cpp
 	$(CC) $(CFLAGS) -o ${modulename} ${modulename}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
+evaluate: ${modulename2}.cpp
+	$(CC) $(CFLAGS) -c -I$(PYHEADERS) -I$(EIGEN3) ${modulename2}.cpp
+	$(CC) $(CFLAGS) -o ${modulename2} ${modulename2}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
+
 clean:
 	$(RM) ${modulename} ${modulename}.so *.o
+	$(RM) ${modulename2} ${modulename2}.so *.o
 	$(RM) *.pyc a.out
 
 

@@ -6,6 +6,8 @@
 #include <vector>
 #include "IndexIterator.h"
 
+// TODO: _lima should be c++ map, not python dict
+
 /**
  * Provides a few access functions given the data of a Python instance of HyperCubicShape.
  * Would be slow if C++ needed to construct an own Python object and call its functions.
@@ -48,6 +50,10 @@ public:
     }
     bool contains_py(boost::python::tuple o){
         return _lima.has_key(o);
+    }
+
+    size_t get_basissize(){
+        return len(_lima);
     }
 
     /**
@@ -103,6 +109,14 @@ public:
 
     /** \return dimension D */
     size_t getD()const {return D;}
+
+    size_t& operator[] (Eigen::VectorXi o) {
+        boost::python::tuple op = toTuple(o);
+        return _lima[op];
+    }
+    size_t& operator[] (boost::python::tuple op) {
+        return _lima[op];
+    }
 
 private:
     size_t D;

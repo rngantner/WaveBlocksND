@@ -204,7 +204,7 @@ evaluate_basis_at(
             // Did we find this k?
             if (neighbours.size() > 0) {
                 // Store computed value
-                phi.row(bas[neighbours]) = (t1 - t2) / sqrt(ki[d] + 1.0);
+                phi.row(bas[neighbours[0]]) = (t1 - t2) / sqrt(ki[d] + 1.0);
                 //phi[bas[kped[1]],:] = (t1 - t2) / sqrt(ki[d] + 1.0) ///// why [1]??
             }
         }
