@@ -209,14 +209,6 @@ void evaluate_basis_at(
     //return phi; // changed to not return
 }
 
-template<class DerivedMatrix, class DerivedMatrixReal, class DerivedVectorComplex>
-void evaluate_basis_at2(
-        MatrixBase<DerivedMatrixReal>&  nodes,
-        MatrixBase<DerivedVectorComplex>&  phi0,
-        MatrixBase<DerivedMatrix>&  phi,
-        HagedornParameters<double>  param
-        ){
-}
 //
 // wrapper for evaluate_basis_at
 //
@@ -232,18 +224,50 @@ void evaluate_basis_at_wrapper(
         bool                    prefactor,
         PyObject*               phi
         ){
-    
     HagedornParameters<double> param(Pis);
-    // matrices:
-    npy_intp* shape = PyArray_DIMS(nodes);
-    int n = shape[0];
-    Map< Eigen::Matrix< double,Eigen::Dynamic,1 > > nodes_in((double *) PyArray_DATA(nodes), n);
-    Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,1 > > phi0_in((complex<double> *) PyArray_DATA(phi0), n);
-    Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > > phi_out((complex<double> *) PyArray_DATA(phi), D, n);
+    // get dimension of nodes matrix //
+    npy_intp* shape = PyArray_SHAPE(nodes);
+    int ndim = PyArray_NDIM(nodes);
+    int n = 1;
+    for (int k=1; k<ndim; k++) n *= shape[k]; // k=1 because dim 0 is node vector in R^D
+
+    // sanity tests //
+    bool error = false;
+    // nodes
+    ndim = PyArray_NDIM(nodes);
+    shape = PyArray_SHAPE(nodes);
+    if (shape[0] != D){
+        cout << "evaluate_basis_at_wrapper error: nodes.shape[0] != D" << endl;
+        error = true;
+    }
+    // phi0
+    ndim = PyArray_NDIM(phi0);
+    shape = PyArray_SHAPE(phi0);
+    if ( !(shape[0] == n && ndim == 1) || !(ndim == 2 && shape[0]*shape[1] == n) ){
+        cout << "evaluate_basis_at_wrapper error: phi0 is not a vector of length nn (number of nodes)" << endl;
+        error = true;
+    }
+    // phi
+    ndim = PyArray_NDIM(phi);
+    shape = PyArray_SHAPE(phi);
+    if (ndim != 2 || shape[0] != D || shape[1] != n){
+        cout << "evaluate_basis_at_wrapper error: phi (output) is not a matrix of size D x nn" << endl;
+        error = true;
+    }
+    if (error) return;
+
+    // construct eigen objects //
+    Map< Eigen::Matrix< double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >
+        nodes_in((double *) PyArray_DATA(nodes), D, n);
+
+    Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,1 > >
+        phi0_in((complex<double> *) PyArray_DATA(phi0), n);
+
+    Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >
+        phi_out((complex<double> *) PyArray_DATA(phi), D, n);
 
     // call function
     evaluate_basis_at(nodes_in, param, D, limits, lima, lima_inv, phi0_in, eps, phi_out, prefactor);
-    //evaluate_basis_at2(nodes_in,phi0_in,phi_out,param);
 }
 
 //
