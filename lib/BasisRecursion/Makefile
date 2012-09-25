@@ -26,7 +26,7 @@ BOOSTPYLIBS=/usr/lib
 #PYLIBS=/usr/lib # ?? not needed ??
 
 modulename=HyperCubicShape
-modulename2=evaluate_basis
+modulename2=EvaluateBasis
 
 all: python prog
  
