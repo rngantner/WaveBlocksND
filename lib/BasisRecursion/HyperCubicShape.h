@@ -110,12 +110,12 @@ public:
     /** \return dimension D */
     size_t getD()const {return D;}
 
-    size_t& operator[] (Eigen::VectorXi o) {
+    size_t operator[] (Eigen::VectorXi o) {
         boost::python::tuple op = toTuple(o);
-        return _lima[op];
+        return boost::python::extract<size_t>(_lima[op]);
     }
-    size_t& operator[] (boost::python::tuple op) {
-        return _lima[op];
+    size_t operator[] (boost::python::tuple op) {
+        return boost::python::extract<size_t>(_lima[op]);
     }
 
 private:

@@ -35,7 +35,7 @@ template<class T>
 struct HagedornParameters {
     size_t _dim;
     Matrix<T,Dynamic,1> q,p;
-    Matrix<T,Dynamic,Dynamic> Q;
+    Matrix<complex<T>,Dynamic,Dynamic> Q;
     Matrix<complex<T>,Dynamic,Dynamic> P;
     T S;
     // constructor
@@ -52,15 +52,6 @@ struct HagedornParameters {
         // TODO
     }
 };
-
-/*
-void evaluate_basis_at_helper(){
-    // D = dimension
-    for (int d=0; d<D; d++){
-        indices = get_node_iterator(d);
-    }
-}
-*/
 
 /**
  * \param constants parameter set pi
@@ -113,33 +104,32 @@ typedef HyperCubicShape<EigIndexIterator> ShapeType; // TODO: make template argu
  * \type prefactor bool, default is ``False``.
  * \return A two-dimensional ndarray :math:`H` of shape :math:`(|\mathcal{K}_i|, |\Gamma|)` where the entry :math:`H[\mu(k), i]` is the value of :math:`\phi_k(\gamma_i)`.
  */
-template<class DerivedVector>
-Matrix<complex<typename DerivedVector::RealScalar>,Dynamic,Dynamic> // return type
-evaluate_basis_at(
-        MatrixBase<DerivedVector>&  nodes,
-        HagedornParameters<double>  param,
+template<class DerivedMatrix, class DerivedMatrixReal, class DerivedVectorComplex>
+void evaluate_basis_at(
+        MatrixBase<DerivedMatrixReal>&  nodes, // D x numNodes matrix
+        HagedornParameters<double>& param,
         size_t                      D,
-        boost::python::tuple        limits,
-        boost::python::dict         lima,
-        boost::python::dict         lima_inv,
-        MatrixBase<DerivedVector>&  phi0, // different type?? need wrapper (also first arg.)
+        boost::python::tuple&       limits,
+        boost::python::dict&        lima,
+        boost::python::dict&        lima_inv,
+        MatrixBase<DerivedVectorComplex>&  phi0, // different type?? need wrapper (also first arg.)
         double                      eps,
+        MatrixBase<DerivedMatrix>&  phi, // return argument. size: bs x nn (bs: basis size)
         bool                        prefactor=false)
 {
-    // typedefs
-    typedef Matrix<complex<typename DerivedVector::RealScalar>,Dynamic,Dynamic> MatrixType;
     // create instance of HyperCubicShape:
     ShapeType bas = ShapeType(D,limits,lima,lima_inv);
-    size_t bs = bas.get_basissize();
+    //size_t bs = bas.get_basissize();
 
     // The overall number of nodes
-    size_t nn = nodes.rows()*nodes.cols();
+    size_t nn = nodes.cols();
     //nn = prod(nodes.shape[1:])
 
     // Allocate the storage array. RealScalar is either float or double
     //phi = zeros((bs, nn), dtype=complexfloating)
-    MatrixType phi,phim,p1,p2,QQ,Qinv;
-    phi.setZero(bs,nn);
+    //MatrixBase<DerivedMatrix> phim,p1,p2,QQ,Qinv;
+    Eigen::Matrix<complex<double>,Eigen::Dynamic,Eigen::Dynamic> phim,p1,p2,QQ,Qinv;
+    //phi.setZero(bs,nn);
 
     // Precompute some constants
     //q, p, Q, P, S = self._Pis // -> param.q, param.p, param.Q, ...
@@ -158,11 +148,12 @@ evaluate_basis_at(
     phi.row(mu0_ind) = phi0;
 
     // precompute x-q
-    DerivedVector xmq(nodes.size());
+    Eigen::VectorXd xmq;
+    xmq.resize(nn);
     xmq = (nodes - param.q);
     // Compute all higher order states phi_k via recursion
-    ShapeType::iterator it;
-    for (int d=0; d<D; d++){
+    ShapeType::iterator it(bas.begin());
+    for (unsigned int d=0; d<D; d++){
         // Iterator for all valid index vectors k
         it = bas.begin(d);
 
@@ -186,7 +177,8 @@ evaluate_basis_at(
             }
 
             // Compute 3-term recursion
-            p1.setZero(nn,phi.cols());
+            p1.setZero(D,nn);
+            p2.setZero(D,nn);
             p1 = xmq.transpose() * phi.row(bas[*it]); // outer product
             // row scaling of phim
             p2 = phim;
@@ -194,7 +186,9 @@ evaluate_basis_at(
                 p2.row(i) *= sqrt(ki(i));
             }
 
-            typename DerivedVector::RealScalar t1, t2;
+            Eigen::Matrix<complex<double>,Eigen::Dynamic,1> t1,t2;
+            t1.setZero(nn);
+            t2.setZero(nn);
             t1 = sqrt(2.0)/eps * (Qinv.row(d)*p1); // second () should be dot product
             t2 = QQ.row(d)*p2; // should be dot-product
 
@@ -212,7 +206,56 @@ evaluate_basis_at(
     if (prefactor)
         phi /= sqrt(param.Q.determinant());
 
-    return phi;
+    //return phi; // changed to not return
 }
+
+template<class DerivedMatrix, class DerivedMatrixReal, class DerivedVectorComplex>
+void evaluate_basis_at2(
+        MatrixBase<DerivedMatrixReal>&  nodes,
+        MatrixBase<DerivedVectorComplex>&  phi0,
+        MatrixBase<DerivedMatrix>&  phi,
+        HagedornParameters<double>  param
+        ){
+}
+//
+// wrapper for evaluate_basis_at
+//
+void evaluate_basis_at_wrapper(
+        PyObject*               nodes,
+        boost::python::tuple&   Pis,
+        size_t                  D,
+        boost::python::tuple&   limits,
+        boost::python::dict&    lima,
+        boost::python::dict&    lima_inv,
+        PyObject*               phi0,
+        double                  eps,
+        bool                    prefactor,
+        PyObject*               phi
+        ){
+    
+    HagedornParameters<double> param(Pis);
+    // matrices:
+    npy_intp* shape = PyArray_DIMS(nodes);
+    int n = shape[0];
+    Map< Eigen::Matrix< double,Eigen::Dynamic,1 > > nodes_in((double *) PyArray_DATA(nodes), n);
+    Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,1 > > phi0_in((complex<double> *) PyArray_DATA(phi0), n);
+    Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > > phi_out((complex<double> *) PyArray_DATA(phi), D, n);
+
+    // call function
+    evaluate_basis_at(nodes_in, param, D, limits, lima, lima_inv, phi0_in, eps, phi_out, prefactor);
+    //evaluate_basis_at2(nodes_in,phi0_in,phi_out,param);
+}
+
+//
+// boost::python stuff
+//
+
+#ifdef PYTHONMODULE
+using namespace boost::python;
+BOOST_PYTHON_MODULE(EvaluateBasis) {
+    def("evaluate_basis_at",evaluate_basis_at_wrapper);
+}
+#endif
+
 #endif    /* EVAL_BASIS_CPP */
 
