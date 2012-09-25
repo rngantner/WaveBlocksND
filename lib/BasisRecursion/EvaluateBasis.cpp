@@ -9,47 +9,63 @@
 #define EVAL_BASIS_CPP
 
 #include <unsupported/Eigen/MatrixFunctions>
-#include <vector>
 #include "HyperCubicShape.h"
 #include "convenienceFunctions.h"
 
-//#ifdef PYTHONMODULE
+#ifdef PYTHONMODULE
 #include <Python.h>
 #include <boost/python.hpp>
 #include <numpy/arrayobject.h>
-////#endif // PYTHONMODULE
+#endif // PYTHONMODULE
 
 #include <Eigen/Core>
 using namespace Eigen;
 
-// delete this when done testing
-#include <iostream>
+#include <vector>
+#include <iostream> // error output
 using namespace std;
-
-typedef int index_t;
 
 /**
  * Default parameters for harmonic oscillator eigenstates: use T=double
+ * T is for the matrices Q and P, which can in certain cases be real
  */
-template<class T>
+template<class T=complex<double> >
 struct HagedornParameters {
     size_t _dim;
-    Matrix<T,Dynamic,1> q,p;
-    Matrix<complex<T>,Dynamic,Dynamic> Q;
-    Matrix<complex<T>,Dynamic,Dynamic> P;
-    T S;
+    Matrix<double,Dynamic,1> q,p;
+    Matrix<T,Dynamic,Dynamic> Q;
+    Matrix<T,Dynamic,Dynamic> P;
+    double S;
     // constructor
     HagedornParameters(size_t dim) : _dim(dim) {
         q.setZero(dim);
         p.setZero(dim);
         Q.setIdentity(dim,dim);
         P.setIdentity(dim,dim);
-        S = 0.0;
+        S = 0.0; // global phase
     }
     // constructor accepting a tuple Pis as stored in python
     // converts to C++ types
     HagedornParameters(boost::python::tuple Pis) {
-        // TODO
+        // check if length is 5:
+        if (boost::python::len(Pis) != 5)
+            throw "HagedornParameters (constructor): Pis is not of length 5!";
+        PyObject* q_py = boost::python::extract<PyObject*>(Pis[0]);
+        PyObject* p_py = boost::python::extract<PyObject*>(Pis[1]);
+        PyObject* Q_py = boost::python::extract<PyObject*>(Pis[2]);
+        PyObject* P_py = boost::python::extract<PyObject*>(Pis[3]);
+        S = boost::python::extract<double>(Pis[4]);
+        // check if numpy data type is complex<double>
+        PyArray_Descr* Q_descr = PyArray_DESCR(Q_py);
+        PyArray_Descr* P_descr = PyArray_DESCR(P_py);
+        if (Q_descr->type != 'D' || P_descr->type != 'D')
+            throw "HagedornParameters (constructor): P or Q (or both) are not of type complex<double>";
+        // build Eigen objects
+        size_t dim = PyArray_DIMS(Q_py)[0];
+        q = Map< Eigen::Matrix< double,Eigen::Dynamic,1 > >((double *) PyArray_DATA(q_py), dim);
+        p = Map< Eigen::Matrix< double,Eigen::Dynamic,1 > >((double *) PyArray_DATA(p_py), dim);
+        Q = Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >((complex<double> *) PyArray_DATA(Q_py), dim, dim);
+        P = Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >((complex<double> *) PyArray_DATA(P_py), dim, dim);
     }
 };
 
@@ -93,6 +109,7 @@ void evaluate_at(MatrixBase<DerivedVector>&      nodes,
     }
     return values;
 }
+// TODO: wrapper for evaluate_at (create eigen matrices from numpy arrays, need phi0 function for eval_bas_at)
 
 typedef HyperCubicShape<EigIndexIterator> ShapeType; // TODO: make template argument of evaluate_basis_at
 /**
@@ -106,16 +123,16 @@ typedef HyperCubicShape<EigIndexIterator> ShapeType; // TODO: make template argu
  */
 template<class DerivedMatrix, class DerivedMatrixReal, class DerivedVectorComplex>
 void evaluate_basis_at(
-        MatrixBase<DerivedMatrixReal>&  nodes, // D x numNodes matrix
-        HagedornParameters<double>& param,
-        size_t                      D,
-        boost::python::tuple&       limits,
-        boost::python::dict&        lima,
-        boost::python::dict&        lima_inv,
-        MatrixBase<DerivedVectorComplex>&  phi0, // different type?? need wrapper (also first arg.)
-        double                      eps,
-        MatrixBase<DerivedMatrix>&  phi, // return argument. size: bs x nn (bs: basis size)
-        bool                        prefactor=false)
+        const MatrixBase<DerivedMatrixReal>&        nodes, // D x numNodes matrix
+        const HagedornParameters<>&                 param,
+        const size_t                                D,
+        const boost::python::tuple&                 limits,
+        const boost::python::dict&                  lima,
+        const boost::python::dict&                  lima_inv,
+        const MatrixBase<DerivedVectorComplex>&     phi0, // different type?? need wrapper (also first arg.)
+        const double                                eps,
+        MatrixBase<DerivedMatrix>&                  phi, // return argument. size: bs x nn (bs: basis size)
+        const bool                                  prefactor=false)
 {
     // create instance of HyperCubicShape:
     ShapeType bas = ShapeType(D,limits,lima,lima_inv);
@@ -123,18 +140,11 @@ void evaluate_basis_at(
 
     // The overall number of nodes
     size_t nn = nodes.cols();
-    //nn = prod(nodes.shape[1:])
 
     // Allocate the storage array. RealScalar is either float or double
-    //phi = zeros((bs, nn), dtype=complexfloating)
-    //MatrixBase<DerivedMatrix> phim,p1,p2,QQ,Qinv;
     Eigen::Matrix<complex<double>,Eigen::Dynamic,Eigen::Dynamic> phim,p1,p2,QQ,Qinv;
-    //phi.setZero(bs,nn);
 
-    // Precompute some constants
-    //q, p, Q, P, S = self._Pis // -> param.q, param.p, param.Q, ...
-
-    // LU decomposition of Q
+    // TODO: correct usage of LU decomposition of Q
     //Eigen::FullPivLU<MatrixType> Q_lu(param.Q);
     //QQ.resize(param.Q.rows(),param.Q.cols());
     //QQ = param.Q.inverse() * param.Q.conjugate();
@@ -144,6 +154,7 @@ void evaluate_basis_at(
     // ground state phi_0 via direct evaluation (passed from python)
     Eigen::VectorXi tmpvec; tmpvec.setZero(D);
     size_t mu0_ind = bas[toTuple(tmpvec)]; // map tuple to index
+    // TODO: use evaluate_phi0 function here (allows C++ version of evaluate_at fct to be used)
     //phi[mu0,:] = evaluate_phi0(self._Pis, nodes, prefactor=False)
     phi.row(mu0_ind) = phi0;
 
@@ -159,23 +170,20 @@ void evaluate_basis_at(
 
         for (it=bas.begin(); it != bas.end(); it++) { //for k in indices:
             // Current index vector
-            //ki = vstack(k)
             Eigen::VectorXi ki = *it; // current index vector
 
             // Access predecessors
             phim.setZero(D,nn);
-            //phim = zeros((D, nn), dtype=complexfloating)
 
             std::vector<Eigen::VectorXi> neighbours = bas.get_neighbours(*it, "backward");
             std::vector<Eigen::VectorXi>::iterator neigh_it = neighbours.begin();
             size_t mukpj;
             for (size_t j=0; neigh_it != neighbours.end(); neigh_it++,j++){
-            //for j, kpj in 
                 mukpj = bas[*neigh_it]; // map tuple to index
                 phim.row(j) = phi.row(mukpj);
-                //phim[j,:] = phi[mukpj,:]
             }
 
+            // TODO: reorder operations to speed up evaluation
             // Compute 3-term recursion
             p1.setZero(D,nn);
             p2.setZero(D,nn);
@@ -199,34 +207,31 @@ void evaluate_basis_at(
             if (neighbours.size() > 0) {
                 // Store computed value
                 phi.row(bas[neighbours[0]]) = (t1 - t2) / sqrt(ki[d] + 1.0);
-                //phi[bas[kped[1]],:] = (t1 - t2) / sqrt(ki[d] + 1.0) ///// why [1]??
             }
         }
     }
     if (prefactor)
         phi /= sqrt(param.Q.determinant());
-
-    //return phi; // changed to not return
 }
 
 //
 // wrapper for evaluate_basis_at
 //
 void evaluate_basis_at_wrapper(
-        PyObject*               nodes,
-        boost::python::tuple&   Pis,
-        size_t                  D,
-        boost::python::tuple&   limits,
-        boost::python::dict&    lima,
-        boost::python::dict&    lima_inv,
-        PyObject*               phi0,
-        double                  eps,
-        bool                    prefactor,
-        PyObject*               phi
+        const PyObject*                 nodes,
+        const boost::python::tuple&     Pis,
+        const size_t                    D,
+        const boost::python::tuple&     limits,
+        const boost::python::dict&      lima,
+        const boost::python::dict&      lima_inv,
+        const PyObject*                 phi0,
+        const double                    eps,
+        const bool                      prefactor,
+        PyObject*                       phi
         ){
-    HagedornParameters<double> param(Pis);
+    HagedornParameters<> param(Pis);
     // get dimension of nodes matrix //
-    npy_intp* shape = PyArray_SHAPE(nodes);
+    npy_intp* shape = PyArray_DIMS(nodes);
     int ndim = PyArray_NDIM(nodes);
     int n = 1;
     for (int k=1; k<ndim; k++) n *= shape[k]; // k=1 because dim 0 is node vector in R^D
@@ -235,21 +240,21 @@ void evaluate_basis_at_wrapper(
     bool error = false;
     // nodes
     ndim = PyArray_NDIM(nodes);
-    shape = PyArray_SHAPE(nodes);
+    shape = PyArray_DIMS(nodes);
     if (shape[0] != D){
         cout << "evaluate_basis_at_wrapper error: nodes.shape[0] != D" << endl;
         error = true;
     }
     // phi0
     ndim = PyArray_NDIM(phi0);
-    shape = PyArray_SHAPE(phi0);
+    shape = PyArray_DIMS(phi0);
     if ( !(shape[0] == n && ndim == 1) || !(ndim == 2 && shape[0]*shape[1] == n) ){
         cout << "evaluate_basis_at_wrapper error: phi0 is not a vector of length nn (number of nodes)" << endl;
         error = true;
     }
     // phi
     ndim = PyArray_NDIM(phi);
-    shape = PyArray_SHAPE(phi);
+    shape = PyArray_DIMS(phi);
     if (ndim != 2 || shape[0] != D || shape[1] != n){
         cout << "evaluate_basis_at_wrapper error: phi (output) is not a matrix of size D x nn" << endl;
         error = true;

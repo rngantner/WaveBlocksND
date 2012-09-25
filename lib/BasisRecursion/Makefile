@@ -41,8 +41,6 @@ prog: ${modulename}.cpp
 evaluate: ${modulename2}.cpp
 	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(EIGEN3) ${modulename2}.cpp
 	$(CC) $(CFLAGS) -shared -o ${modulename2}.so ${modulename2}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
-	#$(CC) $(CFLAGS) -c -I$(PYHEADERS) -I$(EIGEN3) ${modulename2}.cpp
-	#$(CC) $(CFLAGS) -o ${modulename2} ${modulename2}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
 clean:
 	$(RM) ${modulename} ${modulename}.so *.o
