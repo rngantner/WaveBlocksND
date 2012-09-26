@@ -25,6 +25,23 @@ using namespace Eigen;
 #include <iostream> // error output
 using namespace std;
 
+
+template<class T>
+void assertType(char P,char Q){
+    throw "unknown type in 'assertType'";
+}
+template<>
+void assertType<double>(char P, char Q){
+    if (Q != 'd' || P != 'd')
+        throw "assertType: P or Q (or both) are not of type double";
+}
+template<>
+void assertType<complex<double> >(char P, char Q){
+    if (Q != 'd' || P != 'd')
+        throw "assertType: P or Q (or both) are not of type complex<double>";
+}
+
+
 /**
  * Default parameters for harmonic oscillator eigenstates: use T=double
  * T is for the matrices Q and P, which can in certain cases be real
@@ -44,28 +61,19 @@ struct HagedornParameters {
         P.setIdentity(dim,dim);
         S = 0.0; // global phase
     }
-    // constructor accepting a tuple Pis as stored in python
-    // converts to C++ types
-    HagedornParameters(boost::python::tuple Pis) {
-        // check if length is 5:
-        if (boost::python::len(Pis) != 5)
-            throw "HagedornParameters (constructor): Pis is not of length 5!";
-        PyObject* q_py = boost::python::extract<PyObject*>(Pis[0]);
-        PyObject* p_py = boost::python::extract<PyObject*>(Pis[1]);
-        PyObject* Q_py = boost::python::extract<PyObject*>(Pis[2]);
-        PyObject* P_py = boost::python::extract<PyObject*>(Pis[3]);
-        S = boost::python::extract<double>(Pis[4]);
+    // constructor accepting numpy arrays, converts to C++ types
+    HagedornParameters(PyObject* p_py, PyObject* q_py, PyObject* P_py, PyObject* Q_py, double S_py): S(S_py) {
         // check if numpy data type is complex<double>
         PyArray_Descr* Q_descr = PyArray_DESCR(Q_py);
         PyArray_Descr* P_descr = PyArray_DESCR(P_py);
-        if (Q_descr->type != 'D' || P_descr->type != 'D')
-            throw "HagedornParameters (constructor): P or Q (or both) are not of type complex<double>";
+        // T must be same as type of allocated array!
+        assertType<T>(Q_descr->type,P_descr->type);
         // build Eigen objects
         size_t dim = PyArray_DIMS(Q_py)[0];
         q = Map< Eigen::Matrix< double,Eigen::Dynamic,1 > >((double *) PyArray_DATA(q_py), dim);
         p = Map< Eigen::Matrix< double,Eigen::Dynamic,1 > >((double *) PyArray_DATA(p_py), dim);
-        Q = Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >((complex<double> *) PyArray_DATA(Q_py), dim, dim);
-        P = Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >((complex<double> *) PyArray_DATA(P_py), dim, dim);
+        Q = Map< Eigen::Matrix< T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >((T *) PyArray_DATA(Q_py), dim, dim);
+        P = Map< Eigen::Matrix< T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >((T *) PyArray_DATA(P_py), dim, dim);
     }
 };
 
@@ -110,6 +118,7 @@ void evaluate_at(MatrixBase<DerivedVector>&      nodes,
     return values;
 }
 // TODO: wrapper for evaluate_at (create eigen matrices from numpy arrays, need phi0 function for eval_bas_at)
+// (first do phi0 function)
 
 typedef HyperCubicShape<EigIndexIterator> ShapeType; // TODO: make template argument of evaluate_basis_at
 /**
@@ -214,22 +223,30 @@ void evaluate_basis_at(
         phi /= sqrt(param.Q.determinant());
 }
 
+
+#ifdef PYTHONMODULE
+
 //
 // wrapper for evaluate_basis_at
 //
+template<class T> // T can be float or double
 void evaluate_basis_at_wrapper(
-        const PyObject*                 nodes,
-        const boost::python::tuple&     Pis,
+        PyObject*                       nodes,
+        PyObject*                       p,
+        PyObject*                       q,
+        PyObject*                       P,
+        PyObject*                       Q,
+        double                          S,
         const size_t                    D,
         const boost::python::tuple&     limits,
         const boost::python::dict&      lima,
         const boost::python::dict&      lima_inv,
-        const PyObject*                 phi0,
+        PyObject*                       phi0,
         const double                    eps,
         const bool                      prefactor,
         PyObject*                       phi
-        ){
-    HagedornParameters<> param(Pis);
+    ){
+    HagedornParameters<> param(p,q,P,Q,S);
     // get dimension of nodes matrix //
     npy_intp* shape = PyArray_DIMS(nodes);
     int ndim = PyArray_NDIM(nodes);
@@ -262,14 +279,14 @@ void evaluate_basis_at_wrapper(
     if (error) return;
 
     // construct eigen objects //
-    Map< Eigen::Matrix< double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >
-        nodes_in((double *) PyArray_DATA(nodes), D, n);
+    Map< Eigen::Matrix< T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >
+        nodes_in((T *) PyArray_DATA(nodes), D, n);
 
-    Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,1 > >
-        phi0_in((complex<double> *) PyArray_DATA(phi0), n);
+    Map< Eigen::Matrix< complex<T>,Eigen::Dynamic,1 > >
+        phi0_in((complex<T> *) PyArray_DATA(phi0), n);
 
-    Map< Eigen::Matrix< complex<double>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >
-        phi_out((complex<double> *) PyArray_DATA(phi), D, n);
+    Map< Eigen::Matrix< complex<T>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >
+        phi_out((complex<T> *) PyArray_DATA(phi), D, n);
 
     // call function
     evaluate_basis_at(nodes_in, param, D, limits, lima, lima_inv, phi0_in, eps, phi_out, prefactor);
@@ -279,10 +296,11 @@ void evaluate_basis_at_wrapper(
 // boost::python stuff
 //
 
-#ifdef PYTHONMODULE
-using namespace boost::python;
+namespace bp = boost::python;
+#include <boost/python.hpp>
 BOOST_PYTHON_MODULE(EvaluateBasis) {
-    def("evaluate_basis_at",evaluate_basis_at_wrapper);
+    bp::numeric::array::set_module_and_type("numpy","ndarray");
+    bp::def("evaluate_basis_at",evaluate_basis_at_wrapper<double>,"Evaluate HagedornWavepacket Basis (C++ implementation)");
 }
 #endif
 

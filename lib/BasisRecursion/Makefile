@@ -5,6 +5,7 @@ PYTHONVERSION=2.7
 
 # Generic and Debian GNU/Linux
 PYHEADERS=/usr/include/python$(PYTHONVERSION)
+NUMPYHEADERS=/usr/lib/python$(PYTHONVERSION)/dist-packages/numpy/core/include
 EIGEN3=/usr/include/eigen3
 PYLIBS=/usr/lib # location of libboost_python.so
 BOOSTPYLIBS=/usr/lib
@@ -39,7 +40,7 @@ prog: ${modulename}.cpp
 	$(CC) $(CFLAGS) -o ${modulename} ${modulename}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
 evaluate: ${modulename2}.cpp
-	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(EIGEN3) ${modulename2}.cpp
+	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) ${modulename2}.cpp
 	$(CC) $(CFLAGS) -shared -o ${modulename2}.so ${modulename2}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
 clean:
