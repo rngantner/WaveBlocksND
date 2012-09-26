@@ -28,17 +28,22 @@ using namespace std;
 
 template<class T>
 void assertType(char P,char Q){
+    cout << "unknown type in 'assertType'" << endl;
     throw "unknown type in 'assertType'";
 }
 template<>
 void assertType<double>(char P, char Q){
-    if (Q != 'd' || P != 'd')
+    if (Q != 'd' || P != 'd'){
+        cout << "assertType: P or Q (or both) are not of type double. Types: " << P << ", " << Q << endl;
         throw "assertType: P or Q (or both) are not of type double";
+    }
 }
 template<>
 void assertType<complex<double> >(char P, char Q){
-    if (Q != 'd' || P != 'd')
+    if (Q != 'D' || P != 'D'){
+        cout << "assertType: P or Q (or both) are not of type complex<double>. Types: " << P << ", " << Q << endl;
         throw "assertType: P or Q (or both) are not of type complex<double>";
+    }
 }
 
 
