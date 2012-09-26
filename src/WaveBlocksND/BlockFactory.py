@@ -60,8 +60,11 @@ class BlockFactory(object):
 
         wp_type = description["type"]
 
-        if wp_type == "HagedornWavepacket":
-            from HagedornWavepacket import HagedornWavepacket
+        if wp_type == "HagedornWavepacket" or wp_type == "HagedornWavepacketCpp":
+            if wp_type == "HagedornWavepacket":
+                from HagedornWavepacket import HagedornWavepacket
+            else:
+                from HagedornWavepacketCpp import HagedornWavepacketCpp as HagedornWavepacket
 
             # Initialize a packet
             WP = HagedornWavepacket(description["dimension"],
