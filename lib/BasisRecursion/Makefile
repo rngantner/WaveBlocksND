@@ -29,7 +29,7 @@ BOOSTPYLIBS=/usr/lib
 modulename=HyperCubicShape
 modulename2=EvaluateBasis
 
-all: python prog
+all: python evaluate prog
  
 python: ${modulename}.cpp
 	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(EIGEN3) ${modulename}.cpp

@@ -3,6 +3,7 @@
 #include "HyperCubicShape.h"
 #include "convenienceFunctions.h"
 #include <boost/python.hpp>
+#include <boost/python/suite/indexing/map_indexing_suite.hpp>
 
 
 //
@@ -63,7 +64,7 @@ int main(int argc, const char *argv[])
     std::cout << "getting neighbours of 1,1" << std::endl;
     Eigen::VectorXi vec(2);
     vec << 1,1;
-    std::vector<Eigen::VectorXi> n;
+    std::vector<std::pair<size_t,Eigen::VectorXi> > n;
     std::cout << "vec size: " << vec.size() << std::endl;
     try {
     n = hc.get_neighbours(vec,"all",0);
@@ -74,7 +75,7 @@ int main(int argc, const char *argv[])
         std::cout << "ERROR: " << error << std::endl;
     }
     for (size_t i=0; i < n.size(); i++)
-        std::cout << "i: " << i << " n.T= " << n[i].transpose() << std::endl;
+        std::cout << "i: " << i << " n.T= " << n[i].second.transpose() << std::endl;
     std::cout << "getting HCS iterator" << std::endl;
     //HyperCubicShape<EigIndexIterator>::iterator it; // doesn't work- no default constructor (TODO?)
     HyperCubicShape<EigIndexIterator>::iterator it = hc.get_index_iterator_chain(1);

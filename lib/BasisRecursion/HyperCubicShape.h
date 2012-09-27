@@ -4,9 +4,84 @@
 #include <boost/python.hpp>
 #include <Eigen/Core>
 #include <vector>
+#include <map>
 #include "IndexIterator.h"
+#include <iostream>
 
 // TODO: _lima should be c++ map, not python dict
+
+/**
+ * Class representing the inverse of the linear mapping
+ * maps integers (type int_t) to vec_t objects (often Eigen::VectorXi)
+ * TODO: test if type int_t is integral (?)
+ */
+template<class int_t, class vec_t>
+class LimaInv {
+public:
+    /** constructor that converts all data in lima_inv to C++/Eigen types */
+    LimaInv(boost::python::dict lima_inv_in){
+        boost::python::list keys = lima_inv_in.keys();
+        boost::python::list values = lima_inv_in.values();
+        size_t n = boost::python::len(keys);
+        try {
+            for (int i=0; i<n; i++){
+                lima_internal[boost::python::extract<int_t>(keys[i])] = toVectorXi(boost::python::tuple(values[i]));
+            }
+        } catch(...) {
+            boost::python::handle_exception();
+        }
+    }
+    bool has_key(int_t key) { return lima_internal.find( key ) != lima_internal.end(); }
+    vec_t operator[](int_t index){ return lima_internal[index]; }
+private:
+    // just use a std::map from int_t to vec_t
+    std::map<int_t,vec_t> lima_internal;
+};
+
+/**
+ * Class representing the linear mapping
+ * maps vec_t objects (Eigen::VectorXi) to int_t (some integral type)
+ * TODO: test if type int_t is integral (?)
+ */
+template<class int_t, class vec_t>
+class Lima {
+public:
+    Lima(boost::python::dict lima_in);
+    /** linear search to determine if v is in keys */
+    bool has_key(vec_t v) {
+        bool found = false;
+        typename KeyVec::Iterator kit = keys.begin();
+        for (; kit != keys.end(); kit++)
+            if (v == *kit)
+                found = true;
+        return found;
+    }
+    /** get index corresponding to vector v (linear search) */
+    int_t operator[](vec_t v){
+        int_t ret;
+        bool found = false;
+        typename KeyVec::Iterator kit = keys.begin();
+        for (int i=0; kit != keys.end(); kit++,i++) {
+            if (v == *kit){
+                ret = values[i];
+                found = true;
+                break;
+            }
+        }
+        if (found = false){
+            std::cout << "Lima::operator[] : key not found.\n\tkey: " << v << std::endl;
+            throw "key not found";
+        }
+        return ret;
+    }
+private:
+    // store info separately, do linear search when looking for a key
+    typedef std::vector<vec_t, Eigen::aligned_allocator<vec_t> > KeyVec;
+    typedef std::vector<int_t> ValueVec;
+    KeyVec keys;
+    ValueVec values;
+};
+
 
 /**
  * Provides a few access functions given the data of a Python instance of HyperCubicShape.
