@@ -24,7 +24,7 @@ public:
         boost::python::list values = lima_inv_in.values();
         size_t n = boost::python::len(keys);
         try {
-            for (int i=0; i<n; i++){
+            for (size_t i=0; i<n; i++){
                 lima_internal[boost::python::extract<int_t>(keys[i])] = toVectorXi(boost::python::tuple(values[i]));
             }
         } catch(...) {
@@ -33,6 +33,7 @@ public:
     }
     bool has_key(int_t key) { return lima_internal.find( key ) != lima_internal.end(); }
     vec_t operator[](int_t index){ return lima_internal[index]; }
+    size_t size(){ return lima_internal.size(); }
 private:
     // just use a std::map from int_t to vec_t
     std::map<int_t,vec_t> lima_internal;
@@ -46,11 +47,23 @@ private:
 template<class int_t, class vec_t>
 class Lima {
 public:
-    Lima(boost::python::dict lima_in);
+    Lima(boost::python::dict lima_in){
+        boost::python::list _keys = lima_in.keys();
+        boost::python::list _values = lima_in.values();
+        size_t n = boost::python::len(lima_in);
+        try {
+            for (size_t i=0; i<n; i++){
+                keys.push_back(toVectorXi(boost::python::tuple(_keys[i])));
+                values.push_back(boost::python::extract<int_t>(_values[i]));
+            }
+        } catch (...) {
+            boost::python::handle_exception();
+        }
+    }
     /** linear search to determine if v is in keys */
     bool has_key(vec_t v) {
         bool found = false;
-        typename KeyVec::Iterator kit = keys.begin();
+        typename KeyVec::iterator kit = keys.begin();
         for (; kit != keys.end(); kit++)
             if (v == *kit)
                 found = true;
@@ -58,9 +71,9 @@ public:
     }
     /** get index corresponding to vector v (linear search) */
     int_t operator[](vec_t v){
-        int_t ret;
+        int_t ret=0;
         bool found = false;
-        typename KeyVec::Iterator kit = keys.begin();
+        typename KeyVec::iterator kit = keys.begin();
         for (int i=0; kit != keys.end(); kit++,i++) {
             if (v == *kit){
                 ret = values[i];
@@ -68,12 +81,13 @@ public:
                 break;
             }
         }
-        if (found = false){
+        if (found == false){
             std::cout << "Lima::operator[] : key not found.\n\tkey: " << v << std::endl;
             throw "key not found";
         }
         return ret;
     }
+    size_t size() { return keys.size(); }
 private:
     // store info separately, do linear search when looking for a key
     typedef std::vector<vec_t, Eigen::aligned_allocator<vec_t> > KeyVec;
@@ -120,15 +134,14 @@ public:
      * TODO: optimize this! (is in inner loop! don't use python dict lookup)
      */
     bool contains(Eigen::VectorXi o){
-        boost::python::tuple op = toTuple(o);
-        return _lima.has_key(op);
+        return _lima.has_key(o);
     }
     bool contains_py(boost::python::tuple o){
-        return _lima.has_key(o);
+        return _lima.has_key(toVectorXi(o));
     }
 
     size_t get_basissize(){
-        return len(_lima);
+        return _lima.size();
     }
 
     /**
@@ -187,15 +200,15 @@ public:
 
     /** lookups for tuple -> index */
     size_t operator[] (Eigen::VectorXi o) {
-        boost::python::tuple op = toTuple(o);
-        return boost::python::extract<size_t>(_lima[op]);
+        return _lima[o];
     }
     size_t operator[] (boost::python::tuple op) {
-        return boost::python::extract<size_t>(_lima[op]);
+        Eigen::VectorXi o = toVectorXi(op);
+        return _lima[o];
     }
     /** lookups for index -> tuple */
     boost::python::tuple operator[] (size_t k) {
-        return boost::python::extract<boost::python::tuple>(_lima_inv[k]);
+        return toTuple(_lima_inv[k]);
     }
     /*Eigen::VectorXi operator[] (size_t k) {
         boost::python::tuple k_tpl = boost::python::extract<boost::python::tuple>(_lima_inv[k]);
@@ -205,7 +218,9 @@ public:
 private:
     size_t D;
     boost::python::tuple _limits;
-    boost::python::dict _lima, _lima_inv;
+    //boost::python::dict _lima, _lima_inv;
+    Lima<int,Eigen::VectorXi> _lima;
+    LimaInv<int,Eigen::VectorXi> _lima_inv;
 };
 
 #endif //HYPERCUBICSHAPE_H

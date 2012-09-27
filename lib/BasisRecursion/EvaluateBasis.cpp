@@ -169,7 +169,7 @@ void evaluate_basis_at(
 
     // ground state phi_0 via direct evaluation (passed from python)
     Eigen::VectorXi tmpvec; tmpvec.setZero(D);
-    size_t mu0_ind = bas[toTuple(tmpvec)]; // map tuple to index
+    size_t mu0_ind = bas[tmpvec]; // map tuple to index
     // TODO: use evaluate_phi0 function here (allows C++ version of evaluate_at fct to be used)
     //phi[mu0,:] = evaluate_phi0(self._Pis, nodes, prefactor=False)
     phi.row(mu0_ind) = phi0;

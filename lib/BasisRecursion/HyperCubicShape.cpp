@@ -13,6 +13,10 @@
 #ifdef PYTHONMODULE
 using namespace boost::python;
 BOOST_PYTHON_MODULE(HyperCubicShape) {
+//    class_<Lima >("Lima")
+//        .def(map_indexing_suite<Lima >() );
+//    class_<LimaInv >("LimaInv")
+//        .def(map_indexing_suite<LimaInv >() );
 // need init call here, or bp will assume a default constructor exists!
 class_<HyperCubicShape<PyIndexIterator> >("HyperCubicShape",init<size_t,boost::python::tuple,boost::python::dict,boost::python::dict>())
     //.def(init<>())  // default constructor
