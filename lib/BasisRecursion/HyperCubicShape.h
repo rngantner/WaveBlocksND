@@ -63,8 +63,8 @@ public:
      * \param direction Gives the direction in which to look. If it is -1, return all possibilities.
      * \return std::vector of neighbours (Eigen::VectorXi instances)
      */
-    std::vector<Eigen::VectorXi> get_neighbours(Eigen::VectorXi k, std::string selection, int direction=-1) {
-        std::vector<Eigen::VectorXi> neighbours;
+    std::vector<std::pair<size_t,Eigen::VectorXi> > get_neighbours(Eigen::VectorXi k, std::string selection, int direction=-1) {
+        std::vector<std::pair<size_t,Eigen::VectorXi> > neighbours;
         // first look at all possibilities
         if (direction != -1){
             // only look in the given direction
@@ -72,9 +72,9 @@ public:
             e.setZero();
             e[direction] = 1;
             if (selection == "backward" || selection == "all")
-                neighbours.push_back(k-e);
+                neighbours.push_back(std::make_pair(direction,k-e));
             if (selection == "forward" || selection == "all")
-                neighbours.push_back(k+e);
+                neighbours.push_back(std::make_pair(direction,k+e));
         } else {
             // look in all directions
             Eigen::VectorXi e(k);
@@ -84,13 +84,13 @@ public:
                 e[d] = 1;
                 if (selection == "backward" || selection == "all") {
                     knew = k-e;
-                    if (contains(knew));
-                        neighbours.push_back(knew);
+                    if (contains(knew))
+                        neighbours.push_back(std::make_pair(d,knew));
                 }
                 if (selection == "forward" || selection == "all") {
                     knew = k+e;
-                    if (contains(knew));
-                        neighbours.push_back(knew);
+                    if (contains(knew))
+                        neighbours.push_back(std::make_pair(d,knew));
                 }
                 e[d] = 0;
             }
@@ -110,6 +110,7 @@ public:
     /** \return dimension D */
     size_t getD()const {return D;}
 
+    /** lookups for tuple -> index */
     size_t operator[] (Eigen::VectorXi o) {
         boost::python::tuple op = toTuple(o);
         return boost::python::extract<size_t>(_lima[op]);
@@ -117,6 +118,14 @@ public:
     size_t operator[] (boost::python::tuple op) {
         return boost::python::extract<size_t>(_lima[op]);
     }
+    /** lookups for index -> tuple */
+    boost::python::tuple operator[] (size_t k) {
+        return boost::python::extract<boost::python::tuple>(_lima_inv[k]);
+    }
+    /*Eigen::VectorXi operator[] (size_t k) {
+        boost::python::tuple k_tpl = boost::python::extract<boost::python::tuple>(_lima_inv[k]);
+        return toVectorXi(k_tpl);
+    }*/ // can't overload by return type!!
 
 private:
     size_t D;

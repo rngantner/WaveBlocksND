@@ -4,6 +4,7 @@
  *
  * Created on May 14, 2012
  */
+// TODO: throw boost::python-compatible exceptions (s.t. python shows something useful)
 
 #ifndef EVAL_BASIS_CPP
 #define EVAL_BASIS_CPP
@@ -126,6 +127,7 @@ void evaluate_at(MatrixBase<DerivedVector>&      nodes,
 // (first do phi0 function)
 
 typedef HyperCubicShape<EigIndexIterator> ShapeType; // TODO: make template argument of evaluate_basis_at
+typedef std::vector<std::pair<size_t,Eigen::VectorXi> > NeighbourList;
 /**
  * \param grid The grid :math:\Gamma` containing the nodes :math:`\gamma`.
  * \type grid A class having a :py:method:`get_nodes(...)` method.
@@ -173,9 +175,11 @@ void evaluate_basis_at(
     phi.row(mu0_ind) = phi0;
 
     // precompute x-q
-    Eigen::VectorXd xmq;
-    xmq.resize(nn);
-    xmq = (nodes - param.q);
+    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> xmq, qrep;
+    xmq.resize(D,nn);
+    qrep.resize(D,nn);
+    for (unsigned int l=0; l<nn; l++) qrep.col(l) = param.q; // matrix - vec in python repeats vector
+    xmq = (nodes - qrep);
     // Compute all higher order states phi_k via recursion
     ShapeType::iterator it(bas.begin());
     for (unsigned int d=0; d<D; d++){
@@ -189,19 +193,22 @@ void evaluate_basis_at(
             // Access predecessors
             phim.setZero(D,nn);
 
-            std::vector<Eigen::VectorXi> neighbours = bas.get_neighbours(*it, "backward");
-            std::vector<Eigen::VectorXi>::iterator neigh_it = neighbours.begin();
+            NeighbourList neighbours = bas.get_neighbours(*it, "backward");
+            NeighbourList::iterator neigh_it = neighbours.begin();
             size_t mukpj;
-            for (size_t j=0; neigh_it != neighbours.end(); neigh_it++,j++){
-                mukpj = bas[*neigh_it]; // map tuple to index
-                phim.row(j) = phi.row(mukpj);
+            for (;neigh_it != neighbours.end(); neigh_it++){
+                mukpj = bas[neigh_it->second]; // map tuple to index
+                phim.row(neigh_it->first) = phi.row(mukpj);
             }
 
             // TODO: reorder operations to speed up evaluation
             // Compute 3-term recursion
             p1.setZero(D,nn);
             p2.setZero(D,nn);
-            p1 = xmq.transpose() * phi.row(bas[*it]); // outer product
+            Eigen::Matrix<complex<double>,Eigen::Dynamic,Eigen::Dynamic> phirep;
+            phirep.resize(D,nn);
+            for (unsigned int l=0; l<D; l++) phirep.row(l) = phi.row(bas[*it]);
+            p1 = xmq.array() * phirep.array(); // component-wise multiplication
             // row scaling of phim
             p2 = phim;
             for (int i=0; i<ki.size(); i++) {
@@ -219,8 +226,9 @@ void evaluate_basis_at(
 
             // Did we find this k?
             if (neighbours.size() > 0) {
-                // Store computed value
-                phi.row(bas[neighbours[0]]) = (t1 - t2) / sqrt(ki[d] + 1.0);
+                // Store computed value. [0]: first neighbour; second: vector, not index d
+                t1 = (t1 - t2) / sqrt(ki[d] + 1.0);
+                phi.row(bas[neighbours[0].second]) = t1;
             }
         }
     }
@@ -236,49 +244,58 @@ void evaluate_basis_at(
 //
 template<class T> // T can be float or double
 void evaluate_basis_at_wrapper(
-        PyObject*                       nodes,
-        PyObject*                       p,
-        PyObject*                       q,
-        PyObject*                       P,
-        PyObject*                       Q,
-        double                          S,
-        const size_t                    D,
-        const boost::python::tuple&     limits,
-        const boost::python::dict&      lima,
-        const boost::python::dict&      lima_inv,
-        PyObject*                       phi0,
-        const double                    eps,
-        const bool                      prefactor,
-        PyObject*                       phi
+        PyObject*                       nodes,          // Dxnn matrix
+        PyObject*                       p,              // D vector
+        PyObject*                       q,              // D vector
+        PyObject*                       P,              // DxD matrix
+        PyObject*                       Q,              // DxD matrix
+        double                          S,              // real scalar
+        const size_t                    D,              // number of dimensions
+        const size_t                    bs,             // basis size
+        const boost::python::tuple&     limits,         // 
+        const boost::python::dict&      lima,           //
+        const boost::python::dict&      lima_inv,       //
+        PyObject*                       phi0,           // ground state
+        const double                    eps,            //
+        const bool                      prefactor,      // whether to add prefactor or not
+        PyObject*                       phi             // bsxnn matrix (output)
     ){
     HagedornParameters<> param(p,q,P,Q,S);
     // get dimension of nodes matrix //
     npy_intp* shape = PyArray_DIMS(nodes);
-    int ndim = PyArray_NDIM(nodes);
+    unsigned int ndim = PyArray_NDIM(nodes);
     int n = 1;
-    for (int k=1; k<ndim; k++) n *= shape[k]; // k=1 because dim 0 is node vector in R^D
+    for (unsigned int k=1; k<ndim; k++) n *= shape[k]; // k=1 because dim 0 is node vector in R^D
 
     // sanity tests //
     bool error = false;
     // nodes
     ndim = PyArray_NDIM(nodes);
     shape = PyArray_DIMS(nodes);
-    if (shape[0] != D){
+    if (shape[0] != (long)D){
         cout << "evaluate_basis_at_wrapper error: nodes.shape[0] != D" << endl;
+        throw "evaluate_basis_at_wrapper error: nodes.shape[0] != D";
         error = true;
     }
     // phi0
     ndim = PyArray_NDIM(phi0);
     shape = PyArray_DIMS(phi0);
-    if ( !(shape[0] == n && ndim == 1) || !(ndim == 2 && shape[0]*shape[1] == n) ){
-        cout << "evaluate_basis_at_wrapper error: phi0 is not a vector of length nn (number of nodes)" << endl;
+    if (!( (ndim == 1 && shape[0] == n) || (ndim == 2 && shape[0]*shape[1] == n) )){
+        cout << "evaluate_basis_at_wrapper: phi0 is not a vector of length nn ("<<n<<") (number of nodes)."<<endl;
+        if (ndim == 1)
+            cout << "\tlen(phi0):" << shape[0] << endl;
+        else
+            cout << "\tlen(phi0):" << shape[0] << ", " << shape[1] << endl;
+        throw "evaluate_basis_at_wrapper error: phi0 is not a vector of length nn (number of nodes)";
         error = true;
     }
     // phi
     ndim = PyArray_NDIM(phi);
     shape = PyArray_DIMS(phi);
-    if (ndim != 2 || shape[0] != D || shape[1] != n){
-        cout << "evaluate_basis_at_wrapper error: phi (output) is not a matrix of size D x nn" << endl;
+    if (ndim != 2 || shape[0] != (long)bs || shape[1] != n){
+        cout << "evaluate_basis_at_wrapper error: phi (output) is not a matrix of size bs x nn" << endl;
+        cout << "\t shape: " << shape[0] << " x " << shape[1] << " instead of "<<bs<<" x "<<n << endl;
+        throw "evaluate_basis_at_wrapper error: phi (output) is not a matrix of size bs x nn";
         error = true;
     }
     if (error) return;
@@ -291,8 +308,7 @@ void evaluate_basis_at_wrapper(
         phi0_in((complex<T> *) PyArray_DATA(phi0), n);
 
     Map< Eigen::Matrix< complex<T>,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor > >
-        phi_out((complex<T> *) PyArray_DATA(phi), D, n);
-
+        phi_out((complex<T> *) PyArray_DATA(phi), bs, n);
     // call function
     evaluate_basis_at(nodes_in, param, D, limits, lima, lima_inv, phi0_in, eps, phi_out, prefactor);
 }
