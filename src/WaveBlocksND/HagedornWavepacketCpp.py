@@ -61,11 +61,10 @@ class HagedornWavepacketCpp(HagedornWavepacket):
         # Compute all higher order states phi_k via recursion
         # call C++ helper function for speed
         import EvaluateBasis
-        print "S:",self._Pis[4][0,0]
         EvaluateBasis.evaluate_basis_at(
                 nodes,
                 self._Pis[0],self._Pis[1],self._Pis[2],self._Pis[3],double(self._Pis[4][0,0]),
-                D,
+                D, bs,
                 bas.get_limits(),
                 bas._lima,
                 bas._lima_inv,
