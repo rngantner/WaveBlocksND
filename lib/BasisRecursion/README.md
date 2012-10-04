@@ -49,3 +49,10 @@ In order to be able to load the compiled module on Brutus, the library path must
  * use the class `HagedornWavepacketCpp` to utilize the C++ optimized version of the basis recursion
  * currently, only the `HyperCubicShape` is implemented in C++
 
+## TODO
+
+ * implement evaluate_phi0 in C++ (all info should be available)
+ * in class Lima: implement an order relation for Eigen::VectorXi such that lookups are faster (currently linear, could be log(n)!)
+ * larger test cases to compute speedup (current examples in WaveBlocksND are too small)
+
+
