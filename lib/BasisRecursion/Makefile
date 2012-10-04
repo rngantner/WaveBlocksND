@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-Wall -O3 -fopenmp
+CFLAGS=-Wall -O3 -fopenmp -Wno-non-template-friend -funroll-loops
 
 PYTHONVERSION=2.7
 

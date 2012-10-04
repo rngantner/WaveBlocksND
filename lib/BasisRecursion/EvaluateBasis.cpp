@@ -175,11 +175,9 @@ void evaluate_basis_at(
     phi.row(mu0_ind) = phi0;
 
     // precompute x-q
-    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> xmq, qrep;
+    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> xmq;
     xmq.resize(D,nn);
-    qrep.resize(D,nn);
-    for (unsigned int l=0; l<nn; l++) qrep.col(l) = param.q; // matrix - vec in python repeats vector
-    xmq = (nodes - qrep);
+    for (unsigned int l=0; l<nn; l++) xmq.col(l) = nodes.col(l) - param.q;
     // Compute all higher order states phi_k via recursion
     ShapeType::iterator it(bas.begin());
     for (unsigned int d=0; d<D; d++){
@@ -205,10 +203,10 @@ void evaluate_basis_at(
             // Compute 3-term recursion
             p1.setZero(D,nn);
             p2.setZero(D,nn);
-            Eigen::Matrix<complex<double>,Eigen::Dynamic,Eigen::Dynamic> phirep;
-            phirep.resize(D,nn);
-            for (unsigned int l=0; l<D; l++) phirep.row(l) = phi.row(bas[*it]);
-            p1 = xmq.array() * phirep.array(); // component-wise multiplication
+            for (unsigned int l=0; l<D; l++) {
+                //cout << "middle. trying: " << (*it).transpose() << endl;
+                p1.row(l) = xmq.row(l).array() * phi.row(bas[*it]).array();
+            }
             // row scaling of phim
             p2 = phim;
             for (int i=0; i<ki.size(); i++) {

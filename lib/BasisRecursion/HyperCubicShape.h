@@ -69,7 +69,9 @@ public:
                 found = true;
         return found;
     }
-    /** get index corresponding to vector v (linear search) */
+    /** get index corresponding to vector v (linear search)
+     *  TODO: make more efficient! (need ordering of eigen vectors?)
+     */
     int_t operator[](vec_t v){
         int_t ret=0;
         bool found = false;
@@ -151,7 +153,8 @@ public:
      * \param direction Gives the direction in which to look. If it is -1, return all possibilities.
      * \return std::vector of neighbours (Eigen::VectorXi instances)
      */
-    std::vector<std::pair<size_t,Eigen::VectorXi> > get_neighbours(Eigen::VectorXi k, std::string selection, int direction=-1) {
+    std::vector<std::pair<size_t,Eigen::VectorXi> >
+    get_neighbours(Eigen::VectorXi k, std::string selection, int direction=-1) {
         std::vector<std::pair<size_t,Eigen::VectorXi> > neighbours;
         // first look at all possibilities
         if (direction != -1){
