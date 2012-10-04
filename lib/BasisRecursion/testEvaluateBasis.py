@@ -7,6 +7,7 @@ class TestEvaluateBasis(object):
     def __init__(self):
         self.nn = 5
         self.D = 2
+        self.bs = 6
         self.nodes = random.random((self.D,self.nn))
         p = random.random(self.D)
         q = random.random(self.D)
@@ -21,14 +22,14 @@ class TestEvaluateBasis(object):
         self.phi0 = zeros(self.nn)
         self._eps = 0.001
         self.prefactor = True
-        self.phi = zeros((self.D,self.nn))
+        self.phi = zeros((self.bs,self.nn))
 
     def testNormalCall(self):
         """Test correct execution of normal call"""
         # TODO: check correctness of result for a known situation
         EvaluateBasis.evaluate_basis_at(
             self.nodes, self._Pis[0],self._Pis[1],self._Pis[2],self._Pis[3],double(self._Pis[4][0,0]),
-            self.D, self.limits, self.lima, self.lima_inv, self.phi0, self._eps, self.prefactor, self.phi)
+            self.D, self.bs, self.limits, self.lima, self.lima_inv, self.phi0, self._eps, self.prefactor, self.phi)
 
     def case_phi(self):
         phi_wrong = zeros((self.D-1,self.nn)) # make phi wrong size

@@ -160,9 +160,11 @@ public:
             e.setZero();
             e[direction] = 1;
             if (selection == "backward" || selection == "all")
-                neighbours.push_back(std::make_pair(direction,k-e));
+                if (contains(k-e))
+                    neighbours.push_back(std::make_pair(direction,k-e));
             if (selection == "forward" || selection == "all")
-                neighbours.push_back(std::make_pair(direction,k+e));
+                if (contains(k+e))
+                    neighbours.push_back(std::make_pair(direction,k+e));
         } else {
             // look in all directions
             Eigen::VectorXi e(k);
