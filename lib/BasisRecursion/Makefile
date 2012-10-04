@@ -43,8 +43,11 @@ evaluate: ${modulename2}.cpp
 	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(NUMPYHEADERS) -I$(EIGEN3) ${modulename2}.cpp
 	$(CC) $(CFLAGS) -shared -o ${modulename2}.so ${modulename2}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
+install:
+	cp ${modulename2}.so ../../src/
+
 clean:
-	$(RM) ${modulename} ${modulename}.so *.o
+	$(RM) ${modulename} ${modulename}.so *.o *.gch
 	$(RM) ${modulename2} ${modulename2}.so *.o
 	$(RM) *.pyc a.out
 

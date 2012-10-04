@@ -60,9 +60,7 @@ struct HagedornParameters {
     Matrix<T,Dynamic,Dynamic> P;
     double S;
     // constructor
-    HagedornParameters(size_t dim) : _dim(dim) {
-        q.setZero(dim);
-        p.setZero(dim);
+    HagedornParameters(size_t dim) : _dim(dim), q(dim), p(dim) {
         Q.setIdentity(dim,dim);
         P.setIdentity(dim,dim);
         S = 0.0; // global phase
@@ -189,7 +187,7 @@ void evaluate_basis_at(
             Eigen::VectorXi ki = *it; // current index vector
 
             // Access predecessors
-            phim.setZero(D,nn);
+            phim.resize(D,nn);
 
             NeighbourList neighbours = bas.get_neighbours(*it, "backward");
             NeighbourList::iterator neigh_it = neighbours.begin();
@@ -201,21 +199,18 @@ void evaluate_basis_at(
 
             // TODO: reorder operations to speed up evaluation
             // Compute 3-term recursion
-            p1.setZero(D,nn);
-            p2.setZero(D,nn);
+            p1.resize(D,nn);
+            p2.resize(D,nn);
             for (unsigned int l=0; l<D; l++) {
                 //cout << "middle. trying: " << (*it).transpose() << endl;
                 p1.row(l) = xmq.row(l).array() * phi.row(bas[*it]).array();
             }
             // row scaling of phim
-            p2 = phim;
             for (int i=0; i<ki.size(); i++) {
-                p2.row(i) *= sqrt(ki(i));
+                p2.row(i) = phim.row(i) * sqrt(ki(i));
             }
 
-            Eigen::Matrix<complex<double>,Eigen::Dynamic,1> t1,t2;
-            t1.setZero(nn);
-            t2.setZero(nn);
+            Eigen::Matrix<complex<double>,Eigen::Dynamic,1> t1(nn),t2(nn);
             t1 = sqrt(2.0)/eps * (Qinv.row(d)*p1); // second () should be dot product
             t2 = QQ.row(d)*p2; // should be dot-product
 

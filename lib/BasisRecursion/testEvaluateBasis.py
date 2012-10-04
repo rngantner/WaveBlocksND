@@ -26,7 +26,6 @@ class TestEvaluateBasis(object):
 
     def testNormalCall(self):
         """Test correct execution of normal call"""
-        # TODO: check correctness of result for a known situation
         EvaluateBasis.evaluate_basis_at(
             self.nodes, self._Pis[0],self._Pis[1],self._Pis[2],self._Pis[3],double(self._Pis[4][0,0]),
             self.D, self.bs, self.limits, self.lima, self.lima_inv, self.phi0, self._eps, self.prefactor, self.phi)
@@ -57,7 +56,7 @@ class TestEvaluateBasis(object):
                 call()
             except:
                 exception = True
-            #assert exception == True
+            assert exception == True
 
     def testTypeExceptions(self):
         # must raise an exception if certain matrices have wrong type (dbl vs complex- different # of bytes)
