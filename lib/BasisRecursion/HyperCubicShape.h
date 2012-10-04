@@ -84,7 +84,7 @@ public:
             }
         }
         if (found == false){
-            std::cout << "Lima::operator[] : key not found.\tkey: " << v.transpose() << std::endl;
+            //std::cout << "Lima::operator[] : key not found.\tkey: " << v.transpose() << std::endl;
             throw "key not found";
         }
         return ret;

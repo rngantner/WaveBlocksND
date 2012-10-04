@@ -29,9 +29,9 @@ BOOSTPYLIBS=/usr/lib
 modulename=HyperCubicShape
 modulename2=EvaluateBasis
 
-all: python evaluate prog
+all: HCS evaluate prog
  
-python: ${modulename}.cpp
+HCS: ${modulename}.cpp
 	$(CC) $(CFLAGS) -c -fPIC -DPYTHONMODULE -I$(PYHEADERS) -I$(EIGEN3) ${modulename}.cpp
 	$(CC) $(CFLAGS) -shared -o ${modulename}.so ${modulename}.o $(BOOSTPYLIBS)/libboost_python.so -I$(EIGEN3) -L$(PYLIBS) -lpython$(PYTHONVERSION)
 
